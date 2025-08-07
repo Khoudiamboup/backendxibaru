@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
-import { hashPassword } from 'src/utils/security.util';
 
 @Injectable()
 export class UserService {
@@ -12,12 +11,21 @@ export class UserService {
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+  console.log('Recherche utilisateur par email:', email);
+  const user = await this.userRepository.findOne({ where: { userEmail: email } });
+  console.log('Utilisateur trouvé:', user ? user.userEmail : 'Aucun');
+  if (user) {
+    console.log('Mot de passe en DB:', user.userPass);
   }
+  return user;
+}
+
 
   async create(email: string, password: string) {
-    const hashedPassword = await hashPassword(password);
-    const user = this.userRepository.create({ email, password: hashedPassword });
+    const user = this.userRepository.create({ 
+      userEmail: email, 
+      userPass: password // ⚠️ Attention, pas de hash ici
+    });
     return this.userRepository.save(user);
   }
 }

@@ -1,54 +1,37 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Param,
-  Body,
-} from '@nestjs/common';
+
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/strategies/jwt-auth.guard';
 import { CategoryService } from './category.service';
-import { Category } from './category.entity';
 
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
-  // Route : GET /categories
   @Get()
-  findAll(): Promise<Category[]> {
+  getCategories() {
     return this.categoryService.findAll();
   }
 
-  // Route : GET /categories/formatted
-  @Get('formatted')
-  findAllFormatted(): Promise<any[]> {
-    return this.categoryService.findAllFormatted();
+  @Get(':slug')
+  getCategoryBySlug(@Param('slug') slug: string) {
+    return this.categoryService.findBySlug(slug);
   }
 
-  // Route : GET /categories/:id
-  @Get(':id')
-  findOne(@Param('id') id: number): Promise<Category> {
-    return this.categoryService.findOne(+id);
-  }
-
-  // Route : POST /categories
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() categoryData: Partial<Category>): Promise<Category> {
-    return this.categoryService.create(categoryData);
+  createCategory(@Body() data) {
+    return this.categoryService.create(data);
   }
 
-  // Route : PUT /categories/:id
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
-  update(
-    @Param('id') id: number,
-    @Body() categoryData: Partial<Category>,
-  ): Promise<Category> {
-    return this.categoryService.update(+id, categoryData);
+  updateCategory(@Param('id') id: string, @Body() data) {
+    return this.categoryService.update(+id, data);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: number): Promise<void> {
-    return this.categoryService.remove(+id);
+  deleteCategory(@Param('id') id: string) {
+    return this.categoryService.delete(+id);
   }
 }

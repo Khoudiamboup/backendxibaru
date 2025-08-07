@@ -1,12 +1,43 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './strategies/jwt-auth.guard';
+import { IsEmail, IsString, MinLength } from 'class-validator';
+
+// DTO pour la validation
+export class LoginDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  password: string;
+}
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() body: { email: string; password: string }) {
-    return this.authService.login(body.email, body.password);
+  @UsePipes(new ValidationPipe())
+  async login(@Body() loginDto: LoginDto) {
+    console.log('Données reçues:', loginDto); // Debug log
+    return this.authService.login(loginDto.email, loginDto.password);
+  }
+
+  @Post('refresh')
+  async refresh(@Body() body: { refreshToken: string }) {
+    return this.authService.refreshToken(body.refreshToken);
+  }
+
+  @Post('logout')
+  async logout(@Body() body: { refreshToken: string }) {
+    return this.authService.logout(body.refreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  getProfile(@Req() req) {
+    console.log('User dans req:', req.user); // Debug log
+    return req.user;
   }
 }

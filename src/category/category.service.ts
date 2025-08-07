@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Category } from './category.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class CategoryService {
@@ -10,55 +10,34 @@ export class CategoryService {
     private readonly categoryRepo: Repository<Category>,
   ) {}
 
-  findAll(): Promise<Category[]> {
-    return this.categoryRepo.find({ relations: ['articles', 'parent'] });
+  async findAll() {
+    return this.categoryRepo.find();
   }
 
-  async findOne(id: number): Promise<Category> {
-    const category = await this.categoryRepo.findOne({
-      where: { id },
-      relations: ['articles', 'parent'],
-    });
+ async findBySlug(slug: string) {
+  const category = await this.categoryRepo.findOneBy({ slug });
+  if (!category) throw new NotFoundException('Catégorie non trouvée');
+  return category;
+}
 
-    if (!category) {
-      throw new NotFoundException(`Catégorie ${id} non trouvée`);
-    }
 
-    return category;
+  async create(data) {
+    const cat = this.categoryRepo.create(data);
+    return this.categoryRepo.save(cat);
   }
 
-  async create(data: Partial<Category>): Promise<Category> {
-    const category = this.categoryRepo.create(data);
-    return this.categoryRepo.save(category);
-  }
+  async update(id: number, data) {
+  await this.categoryRepo.update(id, data);
+  return this.categoryRepo.findOneBy({ term_id: id });
+}
 
-  async update(id: number, data: Partial<Category>): Promise<Category> {
-    const category = await this.findOne(id);
-    Object.assign(category, data);
-    return this.categoryRepo.save(category);
-  }
 
-  async remove(id: number): Promise<void> {
+  async delete(id: number) {
     await this.categoryRepo.delete(id);
   }
-
-  // 🟡 Méthode personnalisée pour format enrichi
-  async findAllFormatted(): Promise<any[]> {
-    const categories = await this.categoryRepo.find({
-      relations: ['articles', 'parent'],
-    });
-
-    return categories.map(category => ({
-      id: category.id,
-      name: category.name,
-      slug: category.slug,
-      description: category.description,
-      count: category.articles?.length ?? 0,
-      link: category.link,
-      parent: category.parent ? {
-        id: category.parent.id,
-        name: category.parent.name,
-      } : null,
-    }));
-  }
 }
+
+
+
+
+
