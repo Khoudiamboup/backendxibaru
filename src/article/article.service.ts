@@ -77,8 +77,6 @@ async findBySlug(slug: string) {
   };
 }
 
-
-
 async getCategoriesByArticle(articleId: number) {
   const categories = await this.dataSource
     .createQueryBuilder()
@@ -222,7 +220,6 @@ async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: num
   };
 }
 
-
   async findDrafts() {
     return this.articleRepo.find({
       where: { postStatus: 'draft' },
@@ -300,17 +297,74 @@ async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: num
       totalPages: totalPages || 1
     };
   }
+  
+async searchArticles(query: string, page = 1, limit = 10) {
+  const offset = (page - 1) * limit;
 
-  async searchByTitle(searchTerm: string) {
-    return this.articleRepo
-      .createQueryBuilder('article')
-      .where('article.postTitle LIKE :searchTerm', { 
-        searchTerm: `%${searchTerm}%` 
-      })
-      .andWhere('article.postStatus = :status', { status: 'publish' })
-      .andWhere('article.postType = :type', { type: 'post' })
-      .orderBy('article.postDate', 'DESC')
-      .getMany();
-  }
+  const articles = await this.articleRepo
+    .createQueryBuilder('article')
+    .where('article.post_title LIKE :searchTerm', {
+      searchTerm: `%${query}%`,
+    })
+    .andWhere('article.post_status = :status', { status: 'publish' })
+    .andWhere('article.post_type = :type', { type: 'post' })
+    .orderBy('article.post_date', 'DESC')
+    .offset(offset)
+    .limit(limit)
+    .getMany();
+
+  const total = await this.articleRepo
+    .createQueryBuilder('article')
+    .where('article.post_title LIKE :searchTerm', {
+      searchTerm: `%${query}%`,
+    })
+    .andWhere('article.post_status = :status', { status: 'publish' })
+    .andWhere('article.post_type = :type', { type: 'post' })
+    .getCount();
+
+  const appUrl = process.env.APP_URL || 'http://localhost:3001';
+
+  const enrichedArticles = await Promise.all(
+    articles.map(async (article) => {
+      // Récupération image
+      const imageMeta = await this.dataSource
+        .createQueryBuilder()
+        .select('file_meta.meta_value', 'image')
+        .from('wp_postmeta', 'thumb_meta')
+        .leftJoin(
+          'wp_postmeta',
+          'file_meta',
+          'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey',
+          { fileKey: '_wp_attached_file' }
+        )
+        .where('thumb_meta.post_id = :postId', { postId: article.ID })
+        .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+        .getRawOne();
+
+      const imageUrl = imageMeta?.image ? `${appUrl}/uploads/${imageMeta.image}` : null;
+
+      // Récupération catégories
+      const categories = await this.getCategoriesByArticle(article.ID);
+
+      return {
+        id: article.ID,
+        title: article.postTitle,
+        excerpt: article.postExcerpt,
+        content: article.postContent,
+        slug: article.postName,
+        date: article.postDate,
+        image: imageUrl,
+        categories,
+      };
+    })
+  );
+
+  return {
+    articles: enrichedArticles,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 }
 

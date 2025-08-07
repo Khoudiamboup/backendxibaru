@@ -1,5 +1,5 @@
 
-import { Controller, Get, Post, Put, Delete, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Patch, Param, Body, Query, UseGuards, NotFoundException } from '@nestjs/common';
 import { ArticleService } from './article.service';
 import { JwtAuthGuard } from 'src/auth/strategies/jwt-auth.guard';
 import { CategoryService } from 'src/category/category.service';
@@ -11,17 +11,20 @@ export class ArticleController {
     private readonly categoryService: CategoryService
   ) {}
 
+@Get('search')
+async searchArticles(
+  @Query('query') query: string,
+  @Query('page') page = 1,
+  @Query('limit') limit = 10,
+) {
+  const result = await this.articleService.searchArticles(query, +page, +limit);
 
-// @Get()
-//  getArticlesMerged(
-//     @Query('page') page = '1',
-//     @Query('limit') limit = '10'
-//   ) {
-//     const pageNumber = parseInt(page, 10) || 1;
-//     const limitNumber = parseInt(limit, 10) || 10;
+  if (!result.articles || result.articles.length === 0) {
+    throw new NotFoundException('Article non trouvé');
+  }
 
-//     return this.articleService.findArticlesWithImagesMerged(pageNumber, limitNumber);
-//   }
+  return result;
+}
 
 @Get()
 async getArticlesMerged(
@@ -91,4 +94,8 @@ async getArticlesMerged(
   publishArticle(@Param('id') id: string) {
     return this.articleService.publish(+id);
   }
+
+ 
+
+
 }
