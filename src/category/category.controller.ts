@@ -7,29 +7,31 @@ import { CategoryService } from './category.service';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
+  // @UseGuards(JwtAuthGuard)
   @Get()
   getCategories() {
     return this.categoryService.findAll();
   }
 
+  // @UseGuards(JwtAuthGuard)
   @Get(':slug')
   getCategoryBySlug(@Param('slug') slug: string) {
     return this.categoryService.findBySlug(slug);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Post()
   createCategory(@Body() data) {
     return this.categoryService.create(data);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Put(':id')
   updateCategory(@Param('id') id: string, @Body() data) {
     return this.categoryService.update(+id, data);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Delete(':id')
   deleteCategory(@Param('id') id: string) {
     return this.categoryService.delete(+id);

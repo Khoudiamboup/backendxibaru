@@ -1,4 +1,3 @@
-// src/debug.controller.ts - Juste pour le debug, pas pour servir les fichiers
 import { Controller, Get } from '@nestjs/common';
 import { join } from 'path';
 import { existsSync, readdirSync, statSync } from 'fs';
@@ -57,6 +56,3 @@ export class DebugController {
     return files;
   }
 }
-
-// N'oubliez pas de l'ajouter dans app.module.ts :
-// controllers: [AppController, DebugController]

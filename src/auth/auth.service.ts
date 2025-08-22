@@ -21,7 +21,6 @@ async validateUser(email: string, pass: string): Promise<any> {
 
 
    async refreshToken(token: string) {
-    // Implémentation réelle du refresh token
     try {
       const decoded = this.jwtService.verify(token);
       const payload = { sub: decoded.sub, email: decoded.email };
@@ -43,11 +42,11 @@ async login(email: string, password: string) {
     throw new NotFoundException('Utilisateur non trouvé');
   }
 
-  if (user.userPass !== password) {  // ⚠️ comparer sans hash temporairement
+  if (user.userPass !== password) {  
     throw new UnauthorizedException('Mot de passe incorrect');
   }
 
-  const payload = { username: user.userEmail, sub: user.ID };  // utiliser userEmail et ID
+  const payload = { username: user.userEmail, sub: user.ID };  
   return {
     access_token: this.jwtService.sign(payload),
   };

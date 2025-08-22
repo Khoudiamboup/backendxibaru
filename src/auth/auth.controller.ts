@@ -3,7 +3,6 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './strategies/jwt-auth.guard';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
-// DTO pour la validation
 export class LoginDto {
   @IsEmail()
   email: string;
@@ -20,7 +19,7 @@ export class AuthController {
   @Post('login')
   @UsePipes(new ValidationPipe())
   async login(@Body() loginDto: LoginDto) {
-    console.log('Données reçues:', loginDto); // Debug log
+    console.log('Données reçues:', loginDto); 
     return this.authService.login(loginDto.email, loginDto.password);
   }
 
@@ -37,7 +36,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Req() req) {
-    console.log('User dans req:', req.user); // Debug log
+    console.log('User dans req:', req.user);
     return req.user;
   }
 }

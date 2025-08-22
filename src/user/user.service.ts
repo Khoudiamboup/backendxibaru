@@ -24,7 +24,7 @@ export class UserService {
   async create(email: string, password: string) {
     const user = this.userRepository.create({ 
       userEmail: email, 
-      userPass: password // ⚠️ Attention, pas de hash ici
+      userPass: password 
     });
     return this.userRepository.save(user);
   }

@@ -1,4 +1,3 @@
-// media.service.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -35,9 +34,8 @@ export class MediaService {
  async upload(file: Express.Multer.File) {
     const filePath = `uploads/${file.filename}`;
 
-    // Sauvegarde dans la base (exemple)
     const meta = this.mediaMetaRepo.create({
-      post_id: 0, // à adapter
+      post_id: 0, 
       meta_key: '_wp_attached_file',
       meta_value: filePath,
     });
@@ -55,7 +53,6 @@ export class MediaService {
     });
   }
 
-  // 🔸 Supprimer une entrée
   async delete(id: number) {
     const result = await this.mediaMetaRepo.delete(id);
     return result.affected ? { message: 'Supprimé avec succès' } : { message: 'Non trouvé' };
