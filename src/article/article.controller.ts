@@ -184,56 +184,56 @@ export class ArticleController {
   // @UseGuards(JwtAuthGuard)
 
   // Dans article.controller.ts - Remplacer la méthode getAllArticlesAdmin
-@Get('admin')
-async getAllArticlesAdmin() {
-  // console.log('=== RÉCUPÉRATION ARTICLES ADMIN ===');
+// @Get('admin')
+// async getAllArticlesAdmin() {
+//   // console.log('=== RÉCUPÉRATION ARTICLES ADMIN ===');
   
-  const result = await this.articleService.findAll();
-  // console.log('Articles récupérés:', result.length);
+//   const result = await this.articleService.findAll();
+//   // console.log('Articles récupérés:', result.length);
   
-  if (result.length > 0) {
-    console.log('Premier article test:', {
-      id: result[0].ID,
-      title: result[0].postTitle,
-      category: result[0].category,
-      categoriesCount: result[0].categories?.length || 0
-    });
-  }
+//   if (result.length > 0) {
+//     console.log('Premier article test:', {
+//       id: result[0].ID,
+//       title: result[0].postTitle,
+//       category: result[0].category,
+//       categoriesCount: result[0].categories?.length || 0
+//     });
+//   }
   
-  // Les articles sont déjà enrichis avec les catégories et images
-  if (Array.isArray(result)) {
-    const processedArticles = result.map(article => {      
-      return {
-        id: article.ID,
-        title: article.postTitle,
-        excerpt: article.postExcerpt,
-        content: article.postContent,
-        slug: article.postName,
-        status: article.postStatus === 'publish' ? 'published' : article.postStatus,
-        createdAt: article.postDate,
-        updatedAt: article.postModified,
-        imagePath: article.imagePath,
-        fullImageUrl: article.fullImageUrl,
-        category: article.category, // Cette propriété est maintenant incluse
-        categories: article.categories || []
-      };
-    });
+//   // Les articles sont déjà enrichis avec les catégories et images
+//   if (Array.isArray(result)) {
+//     const processedArticles = result.map(article => {      
+//       return {
+//         id: article.ID,
+//         title: article.postTitle,
+//         excerpt: article.postExcerpt,
+//         content: article.postContent,
+//         slug: article.postName,
+//         status: article.postStatus === 'publish' ? 'published' : article.postStatus,
+//         createdAt: article.postDate,
+//         updatedAt: article.postModified,
+//         imagePath: article.imagePath,
+//         fullImageUrl: article.fullImageUrl,
+//         category: article.category, // Cette propriété est maintenant incluse
+//         categories: article.categories || []
+//       };
+//     });
     
-    console.log('Articles traités (échantillon):', processedArticles.slice(0, 2).map(a => ({ 
-      id: a.id, 
-      title: a.title, 
-      category: a.category ? `${a.category.name} (${a.category.slug})` : 'null' 
-    })));
+//     console.log('Articles traités (échantillon):', processedArticles.slice(0, 2).map(a => ({ 
+//       id: a.id, 
+//       title: a.title, 
+//       category: a.category ? `${a.category.name} (${a.category.slug})` : 'null' 
+//     })));
     
-    return processedArticles;
-  }
+//     return processedArticles;
+//   }
   
-  return result;
-}
-  // @Get('admin')
-  // getAllArticlesAdmin() {
-  //   return this.articleService.findAll();
-  // }
+//   return result;
+// }
+  @Get('admin')
+  getAllArticlesAdmin() {
+    return this.articleService.findAll();
+  }
 
   // @UseGuards(JwtAuthGuard)
   @Get(':slug')

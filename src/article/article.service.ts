@@ -80,20 +80,21 @@ export class ArticleService {
   }
 
   // async getCategoriesByArticle(articleId: number) {
-  //   const categories = await this.dataSource
-  //     .createQueryBuilder()
-  //     .select('t.term_id', 'id')
-  //     .addSelect('t.name', 'name')
-  //     .addSelect('t.slug', 'slug')
-  //     .from('wp_term_relationships', 'tr')
-  //     .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-  //     .innerJoin('wp_terms', 't', 't.term_id = tt.term_id')
-  //     .where('tr.object_id = :articleId', { articleId })
-  //     .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-  //     .getRawMany();
+  // const categories = await this.dataSource
+  //   .createQueryBuilder()
+  //   .select('t.term_id', 'term_id')
+  //   .addSelect('t.name', 'name')
+  //   .addSelect('t.slug', 'slug')
+  //   .from('wp_term_relationships', 'tr')
+  //   .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+  //   .innerJoin('wp_terms', 't', 't.term_id = tt.term_id')
+  //   .where('tr.object_id = :articleId', { articleId })
+  //   .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+  //   .getRawMany();
 
   //   return categories;
   // }
+
 async getCategoriesByArticle(articleId: number) {
   // console.log(`Getting categories for article ${articleId}`);
   
@@ -356,73 +357,73 @@ async getCategoriesByArticle(articleId: number) {
     return this.articleRepo.save(article);
   }
 
-  // async findAll() {
-  //   return this.articleRepo.find({
-  //     order: {
-  //       postDate: 'DESC',
-  //     },
-  //   });
-  // }
-
   async findAll() {
-  // console.log('=== FINDALL AVEC ENRICHISSEMENT ===');
+    return this.articleRepo.find({
+      order: {
+        postDate: 'DESC',
+      },
+    });
+  }
+
+//   async findAll() {
+//   // console.log('=== FINDALL AVEC ENRICHISSEMENT ===');
   
-  const articles = await this.articleRepo.find({
-    order: {
-      postDate: 'DESC',
-    },
-  });
+//   const articles = await this.articleRepo.find({
+//     order: {
+//       postDate: 'DESC',
+//     },
+//   });
 
-  // console.log(`Found ${articles.length} articles`);
+//   // console.log(`Found ${articles.length} articles`);
 
-  // Enrichir chaque article avec images et catégories
-  const enrichedArticles = await Promise.all(
-    articles.map(async (article) => {
-      // console.log(`Processing article ${article.ID}: ${article.postTitle}`);
+//   // Enrichir chaque article avec images et catégories
+//   const enrichedArticles = await Promise.all(
+//     articles.map(async (article) => {
+//       // console.log(`Processing article ${article.ID}: ${article.postTitle}`);
       
-      // Récupérer l'image
-      const imageMeta = await this.dataSource
-        .createQueryBuilder()
-        .select('file_meta.meta_value', 'imagePath')
-        .from('wp_postmeta', 'thumb_meta')
-        .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
-        .where('thumb_meta.post_id = :postId', { postId: article.ID })
-        .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-        .getRawOne();
+//       // Récupérer l'image
+//       const imageMeta = await this.dataSource
+//         .createQueryBuilder()
+//         .select('file_meta.meta_value', 'imagePath')
+//         .from('wp_postmeta', 'thumb_meta')
+//         .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
+//         .where('thumb_meta.post_id = :postId', { postId: article.ID })
+//         .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+//         .getRawOne();
 
-      // Récupérer les catégories
-      const categories = await this.getCategoriesByArticle(article.ID);
-      // console.log(`Article ${article.ID} categories:`, categories);
+//       // Récupérer les catégories
+//       const categories = await this.getCategoriesByArticle(article.ID);
+//       // console.log(`Article ${article.ID} categories:`, categories);
       
-      const primaryCategory = categories[0] || null;
-      // console.log(`Article ${article.ID} primary category:`, primaryCategory);
+//       const primaryCategory = categories[0] || null;
+//       // console.log(`Article ${article.ID} primary category:`, primaryCategory);
 
-      return {
-        ...article,
-        imagePath: imageMeta?.imagePath || null,
-        fullImageUrl: imageMeta?.imagePath 
-          ? `${process.env.API_BASE_URL || 'http://localhost:3001'}/${imageMeta.imagePath}`
-          : null,
-        category: primaryCategory ? {
-          id: primaryCategory.id,
-          term_id: primaryCategory.id, // Ajout pour compatibilité
-          name: primaryCategory.name,
-          slug: primaryCategory.slug
-        } : null,
-        categories: categories
-      };
-    })
-  );
+//       return {
+//         ...article,
+//         imagePath: imageMeta?.imagePath || null,
+//         fullImageUrl: imageMeta?.imagePath 
+//           ? `${process.env.API_BASE_URL || 'http://localhost:3001'}/${imageMeta.imagePath}`
+//           : null,
+//         category: primaryCategory ? {
+//           id: primaryCategory.id,
+//           term_id: primaryCategory.id, // Ajout pour compatibilité
+//           name: primaryCategory.name,
+//           slug: primaryCategory.slug
+//         } : null,
+//         categories: categories
+//       };
+//     })
+//   );
 
-  console.log('Enriched articles sample:', enrichedArticles.slice(0, 1).map(a => ({
-    id: a.ID,
-    title: a.postTitle,
-    category: a.category,
-    categoriesCount: a.categories.length
-  })));
+//   console.log('Enriched articles sample:', enrichedArticles.slice(0, 1).map(a => ({
+//     id: a.ID,
+//     title: a.postTitle,
+//     category: a.category,
+//     categoriesCount: a.categories.length
+//   })));
 
-  return enrichedArticles;
-}
+//   return enrichedArticles;
+// }
 
   async findByType(postType: string) {
     return this.articleRepo.find({
