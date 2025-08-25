@@ -202,7 +202,7 @@ async getCategoriesByArticle(articleId: number) {
       postDateGmt: new Date(),
       postModified: new Date(),
       postModifiedGmt: new Date(),
-      guid: `${process.env.APP_URL || 'http://localhost:3001'}/uploads/${filePath}`,
+      guid: `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${filePath}`,
       commentStatus: 'open',
       pingStatus: 'closed',
       postPassword: '',

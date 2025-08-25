@@ -21,7 +21,7 @@ export class MediaService {
     if (!meta) return null;
 
     const uploadsPath = meta.meta_value; 
-    const baseUrl = 'http://localhost:3001/uploads/';
+    const baseUrl = 'https://xibarubamback.onrender.com/uploads/';
 
     return `${baseUrl}${uploadsPath}`;
   }
