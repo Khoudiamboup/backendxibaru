@@ -23,7 +23,7 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: 'https://xibarubambouck-com-1z5y.vercel.app', 
+    origin: 'http://localhost:3000', 
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'], 

@@ -1,8 +1,8 @@
-
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { join } from 'path'; 
+import { join } from 'path';
+import * as fs from 'fs';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,26 +20,24 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { DebugController } from './debug.controller';
 import { CommentModule } from './comment/comment.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    
-  ServeStaticModule.forRoot({
-  rootPath: join(__dirname, '..', 'uploads'),
-  serveRoot: '/uploads',
-  serveStaticOptions: {
-    index: false,
-    setHeaders: (res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    },
-  },
-}),
 
-    
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+      serveStaticOptions: {
+        index: false,
+        setHeaders: (res) => {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        },
+      },
+    }),
+
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST,
@@ -47,10 +45,13 @@ import { CommentModule } from './comment/comment.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [__dirname + '/**/*.entity.{js,ts}'],  
+      entities: [__dirname + '/**/*.entity.{js,ts}'],
       synchronize: true,
+ssl: {
+  ca: fs.readFileSync(process.env.DB_SSL_CA_PATH || './ca.pem'),
+},
     }),
-    
+
     AuthModule,
     UserModule,
     CategoryModule,
@@ -58,13 +59,12 @@ import { CommentModule } from './comment/comment.module';
     MediaModule,
     CommentModule,
   ],
-  controllers: [AppController,DebugController],
+  controllers: [AppController, DebugController],
   providers: [AppService, DatabaseService],
 })
 export class AppModule {
   constructor(private readonly databaseService: DatabaseService) {
     this.databaseService.testConnection();
-    
     console.log('🔗 Images disponibles à: http://localhost:3001/uploads/...');
   }
 }
