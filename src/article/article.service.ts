@@ -79,22 +79,7 @@ export class ArticleService {
     };
   }
 
-  // async getCategoriesByArticle(articleId: number) {
-  // const categories = await this.dataSource
-  //   .createQueryBuilder()
-  //   .select('t.term_id', 'term_id')
-  //   .addSelect('t.name', 'name')
-  //   .addSelect('t.slug', 'slug')
-  //   .from('wp_term_relationships', 'tr')
-  //   .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-  //   .innerJoin('wp_terms', 't', 't.term_id = tt.term_id')
-  //   .where('tr.object_id = :articleId', { articleId })
-  //   .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-  //   .getRawMany();
-
-  //   return categories;
-  // }
-
+ 
 async getCategoriesByArticle(articleId: number) {
   // console.log(`Getting categories for article ${articleId}`);
   
@@ -365,66 +350,6 @@ async getCategoriesByArticle(articleId: number) {
     });
   }
 
-//   async findAll() {
-//   // console.log('=== FINDALL AVEC ENRICHISSEMENT ===');
-  
-//   const articles = await this.articleRepo.find({
-//     order: {
-//       postDate: 'DESC',
-//     },
-//   });
-
-//   // console.log(`Found ${articles.length} articles`);
-
-//   // Enrichir chaque article avec images et catégories
-//   const enrichedArticles = await Promise.all(
-//     articles.map(async (article) => {
-//       // console.log(`Processing article ${article.ID}: ${article.postTitle}`);
-      
-//       // Récupérer l'image
-//       const imageMeta = await this.dataSource
-//         .createQueryBuilder()
-//         .select('file_meta.meta_value', 'imagePath')
-//         .from('wp_postmeta', 'thumb_meta')
-//         .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
-//         .where('thumb_meta.post_id = :postId', { postId: article.ID })
-//         .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-//         .getRawOne();
-
-//       // Récupérer les catégories
-//       const categories = await this.getCategoriesByArticle(article.ID);
-//       // console.log(`Article ${article.ID} categories:`, categories);
-      
-//       const primaryCategory = categories[0] || null;
-//       // console.log(`Article ${article.ID} primary category:`, primaryCategory);
-
-//       return {
-//         ...article,
-//         imagePath: imageMeta?.imagePath || null,
-//         fullImageUrl: imageMeta?.imagePath 
-//           ? `${process.env.API_BASE_URL || 'http://localhost:3001'}/${imageMeta.imagePath}`
-//           : null,
-//         category: primaryCategory ? {
-//           id: primaryCategory.id,
-//           term_id: primaryCategory.id, // Ajout pour compatibilité
-//           name: primaryCategory.name,
-//           slug: primaryCategory.slug
-//         } : null,
-//         categories: categories
-//       };
-//     })
-//   );
-
-//   console.log('Enriched articles sample:', enrichedArticles.slice(0, 1).map(a => ({
-//     id: a.ID,
-//     title: a.postTitle,
-//     category: a.category,
-//     categoriesCount: a.categories.length
-//   })));
-
-//   return enrichedArticles;
-// }
-
   async findByType(postType: string) {
     return this.articleRepo.find({
       where: { postType },
@@ -439,81 +364,163 @@ async getCategoriesByArticle(articleId: number) {
     });
   }
 
-  async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
-    const offset = (page - 1) * limit;
+  // async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
+  //   const offset = (page - 1) * limit;
 
-    const qb = this.dataSource
-      .createQueryBuilder()
-      .select([
-        'article.ID AS id',
-        'article.post_title AS title',
-        'article.post_excerpt AS excerpt',
-        'article.post_content AS content',
-        'article.post_date AS date',
-        'article.post_name AS slug',
-        'file_meta.meta_value AS image',
-      ])
-      .from(Article, 'article')
-      .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
-        thumbnailKey: '_thumbnail_id',
-      })
-      .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
-        fileKey: '_wp_attached_file',
-      })
-      .where('article.post_status = :status', { status: 'publish' });
+  //   const qb = this.dataSource
+  //     .createQueryBuilder()
+  //     .select([
+  //       'article.ID AS id',
+  //       'article.post_title AS title',
+  //       'article.post_excerpt AS excerpt',
+  //       'article.post_content AS content',
+  //       'article.post_date AS date',
+  //       'article.post_name AS slug',
+  //       'file_meta.meta_value AS image',
+  //     ])
+  //     .from(Article, 'article')
+  //     .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
+  //       thumbnailKey: '_thumbnail_id',
+  //     })
+  //     .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
+  //       fileKey: '_wp_attached_file',
+  //     })
+  //     .where('article.post_status = :status', { status: 'publish' });
 
-    if (categoryId) {
-      qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
-        .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-        .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-        .andWhere('tt.term_id = :categoryId', { categoryId });
-    }
+  //   if (categoryId) {
+  //     qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+  //       .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+  //       .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+  //       .andWhere('tt.term_id = :categoryId', { categoryId });
+  //   }
 
-    qb.orderBy('article.post_date', 'DESC')
-      .offset(offset)
-      .limit(limit);
+  //   qb.orderBy('article.post_date', 'DESC')
+  //     .offset(offset)
+  //     .limit(limit);
 
-    const articles = await qb.getRawMany();
+  //   const articles = await qb.getRawMany();
 
-    const countQb = this.dataSource
-      .createQueryBuilder()
-      .select('COUNT(*)', 'count')
-      .from(Article, 'article')
-      .where('article.post_status = :status', { status: 'publish' });
+  //   const countQb = this.dataSource
+  //     .createQueryBuilder()
+  //     .select('COUNT(*)', 'count')
+  //     .from(Article, 'article')
+  //     .where('article.post_status = :status', { status: 'publish' });
 
-    if (categoryId) {
-      countQb
-        .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
-        .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-        .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-        .andWhere('tt.term_id = :categoryId', { categoryId });
-    }
+  //   if (categoryId) {
+  //     countQb
+  //       .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+  //       .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+  //       .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+  //       .andWhere('tt.term_id = :categoryId', { categoryId });
+  //   }
 
-    const totalResult = await countQb.getRawOne();
-    const total = parseInt(totalResult.count, 10);
+  //   const totalResult = await countQb.getRawOne();
+  //   const total = parseInt(totalResult.count, 10);
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3001';
+  //   const appUrl = process.env.APP_URL || 'http://localhost:3001';
 
-    const formattedArticles = articles.map((item: any) => ({
-      id: item.id,
-      title: item.title,
-      excerpt: item.excerpt,
-      content: item.content,
-      slug: item.slug,
-      date: item.date,
-      image: item.image ? `${appUrl}/uploads/${item.image}` : null,
-    }));
+  //   const formattedArticles = articles.map((item: any) => ({
+  //     id: item.id,
+  //     title: item.title,
+  //     excerpt: item.excerpt,
+  //     content: item.content,
+  //     slug: item.slug,
+  //     date: item.date,
+  //     image: item.image ? `${appUrl}/uploads/${item.image}` : null,
+  //   }));
 
-    return {
-      articles: formattedArticles,
-      total,
-      totalPages: Math.ceil(total / limit),
-      articlesCount: formattedArticles.length,
-      firstArticle: formattedArticles[0] || null,
-      firstArticleImage: formattedArticles[0]?.image || null,
-    };
+  //   return {
+  //     articles: formattedArticles,
+  //     total,
+  //     totalPages: Math.ceil(total / limit),
+  //     articlesCount: formattedArticles.length,
+  //     firstArticle: formattedArticles[0] || null,
+  //     firstArticleImage: formattedArticles[0]?.image || null,
+  //   };
+  // }
+async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
+  const offset = (page - 1) * limit;
+
+  const qb = this.dataSource
+    .createQueryBuilder()
+    .select([
+      'article.ID AS id',
+      'article.post_title AS title',
+      'article.post_excerpt AS excerpt',
+      'article.post_content AS content',
+      'article.post_date AS date',
+      'article.post_name AS slug',
+      'file_meta.meta_value AS image',
+    ])
+    .from(Article, 'article')
+    .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
+      thumbnailKey: '_thumbnail_id',
+    })
+    .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
+      fileKey: '_wp_attached_file',
+    })
+    .where('article.post_status = :status', { status: 'publish' });
+
+  if (categoryId) {
+    qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+      .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+      .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+      .andWhere('tt.term_id = :categoryId', { categoryId });
   }
 
+  qb.orderBy('article.post_date', 'DESC')
+    .offset(offset)
+    .limit(limit);
+
+  const articles = await qb.getRawMany();
+
+  const countQb = this.dataSource
+    .createQueryBuilder()
+    .select('COUNT(*)', 'count')
+    .from(Article, 'article')
+    .where('article.post_status = :status', { status: 'publish' });
+
+  if (categoryId) {
+    countQb
+      .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+      .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+      .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+      .andWhere('tt.term_id = :categoryId', { categoryId });
+  }
+
+  const totalResult = await countQb.getRawOne();
+  const total = parseInt(totalResult.count, 10);
+
+  const appUrl = process.env.APP_URL || 'http://localhost:3001';
+
+  // Format articles and add categories for each
+  const formattedArticles = await Promise.all(
+    articles.map(async (item: any) => {
+      // Get categories for each article
+      const categories = await this.getCategoriesByArticle(item.id);
+      
+      return {
+        id: item.id,
+        title: item.title,
+        excerpt: item.excerpt,
+        content: item.content,
+        slug: item.slug,
+        date: item.date,
+        image: item.image ? `${appUrl}/uploads/${item.image}` : null,
+        categories: categories, // Add categories here
+      };
+    })
+  );
+
+  return {
+    articles: formattedArticles,
+    total,
+    totalPages: Math.ceil(total / limit),
+    articlesCount: formattedArticles.length,
+    firstArticle: formattedArticles[0] || null,
+    firstArticleImage: formattedArticles[0]?.image || null,
+  };
+}
   async findDrafts() {
     return this.articleRepo.find({
       where: { postStatus: 'draft' },
