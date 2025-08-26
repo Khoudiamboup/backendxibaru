@@ -46,10 +46,11 @@ import { CommentModule } from './comment/comment.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [__dirname + '/**/*.entity.{js,ts}'],
-      synchronize: true,
+      synchronize: false,
 ssl: {
   ca: fs.readFileSync(process.env.DB_SSL_CA_PATH || './ca.pem'),
 },
+
     }),
 
     AuthModule,
