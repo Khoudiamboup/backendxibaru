@@ -66,6 +66,6 @@ ssl: {
 export class AppModule {
   constructor(private readonly databaseService: DatabaseService) {
     this.databaseService.testConnection();
-    console.log('🔗 Images disponibles à: http://localhost:3001/uploads/...');
+    console.log('🔗 Images disponibles à: https://xibarubamback.onrender.com/uploads/...');
   }
 }

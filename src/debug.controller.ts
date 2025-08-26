@@ -28,7 +28,7 @@ export class DebugController {
           .slice(0, 10)
           .map(file => ({
             filename: file,
-            url: `http://localhost:3001/uploads/${file}`
+            url: `https://xibarubamback.onrender.com/uploads/${file}`
           }))
       };
     } catch (error) {

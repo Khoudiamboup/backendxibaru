@@ -65,7 +65,7 @@ export class ArticleService {
 
     console.log('Métadonnées image trouvées:', imageMeta);
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3001';
+    const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
     const imageUrl = imageMeta?.image ? `${appUrl}/uploads/${imageMeta.image}` : null;
 
     console.log('URL finale de l\'image:', imageUrl);
@@ -152,7 +152,7 @@ async getCategoriesByArticle(articleId: number) {
 
     const savedArticle = await this.articleRepo.save(article);
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3001';
+    const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
     savedArticle.guid = `${appUrl}/?p=${savedArticle.ID}`;
 
     await this.articleRepo.save(savedArticle);
@@ -202,7 +202,7 @@ async getCategoriesByArticle(articleId: number) {
       postDateGmt: new Date(),
       postModified: new Date(),
       postModifiedGmt: new Date(),
-      guid: `${process.env.APP_URL || 'http://localhost:3001'}/uploads/${filePath}`,
+      guid: `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${filePath}`,
       commentStatus: 'open',
       pingStatus: 'closed',
       postPassword: '',
@@ -491,7 +491,7 @@ async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: num
   const totalResult = await countQb.getRawOne();
   const total = parseInt(totalResult.count, 10);
 
-  const appUrl = process.env.APP_URL || 'http://localhost:3001';
+  const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
 
   // Format articles and add categories for each
   const formattedArticles = await Promise.all(
@@ -572,7 +572,7 @@ async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: num
       .limit(limit)
       .getRawMany();
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3001';
+    const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
 
     articles.forEach((article: any) => { // Fixed: added type annotation
       if (article.image) {
@@ -622,7 +622,7 @@ async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: num
       .andWhere('article.post_type = :type', { type: 'post' })
       .getCount();
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3001';
+    const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
 
     const enrichedArticles = await Promise.all(
       articles.map(async (article) => {
