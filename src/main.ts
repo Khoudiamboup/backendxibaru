@@ -23,11 +23,16 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: 'https://xibarubambouck-com-1z5y.vercel.app', 
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'], 
-  });
+  origin: [
+    'https://xibarubambouck-com-1z5y.vercel.app',
+    'https://xibarubambouckadmin-c6sn.vercel.app',
+    'https://xibarubambouck.com/'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+});
+
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
