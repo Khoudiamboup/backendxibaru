@@ -1,4 +1,4 @@
-
+import { Request, Response, NextFunction } from 'express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -23,19 +23,27 @@ async function bootstrap() {
   });
 
   app.enableCors({
-  origin: [
-    'https://xibarubambouck-com-1z5y.vercel.app',
-    'https://xibarubambouckadmin-c6sn.vercel.app',
-    'https://xibarubambouck.com'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-});
+    origin: [
+      'https://xibarubambouck-com-1z5y.vercel.app',
+      'https://xibarubambouckadmin-c6sn.vercel.app',
+      'https://xibarubambouck.com'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
+  // Ajout CORS spécifique aux fichiers statiques
+  app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+    res.header('Access-Control-Allow-Origin', 'https://xibarubambouck.com');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+  });
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`Backend NestJS écoute sur http://localhost:${port}`);
+  console.log(`✅ Backend NestJS écoute sur http://localhost:${port}`);
 }
+
 bootstrap();
