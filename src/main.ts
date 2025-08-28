@@ -27,6 +27,7 @@ async function bootstrap() {
   origin: [
     'https://xibarubambouck-com-1z5y.vercel.app',
     'https://xibarubambouckadmin-c6sn.vercel.app',
+    'https://bambouckadmin.vercel.app'
     'https://xibarubambouck.com'
   ],
   credentials: true,
