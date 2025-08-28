@@ -1,5 +1,3 @@
-import { Request, Response, NextFunction } from 'express';
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -10,41 +8,49 @@ import * as express from 'express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.use(express.json({ limit: '50mb' })); 
-  app.use(express.urlencoded({ limit: '50mb', extended: true })); 
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,           
-    whitelist: true,          
-    forbidNonWhitelisted: true, 
-    skipMissingProperties: false, 
-  }));
+  // Parse JSON et URL-encoded
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+  // Validation globale
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      skipMissingProperties: false,
+    }),
+  );
+
+  // Fichiers statiques
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
   });
 
-  app.enableCors({
-  origin: [
-    'https://xibarubambouck-com-1z5y.vercel.app',
+  // CORS dynamique
+  const allowedOrigins = [
+    'https://xibarubambouck.com',
+    'https://bambouckadmin.vercel.app',
     'https://xibarubambouckadmin-c6sn.vercel.app',
-    'https://bambouckadmin.vercel.app'
-    'https://xibarubambouck.com'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-});
+    'https://xibarubambouck-com-1z5y.vercel.app',
+  ];
 
-app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', 'https://xibarubambouck.com');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
-});
-
+  app.enableCors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`Backend NestJS écoute sur http://localhost:${port}`);
 }
+
 bootstrap();
