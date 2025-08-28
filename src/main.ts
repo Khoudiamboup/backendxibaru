@@ -18,18 +18,9 @@ async function bootstrap() {
     skipMissingProperties: false, 
   }));
 
-  // app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-  //   prefix: '/uploads/',
-  // });
-
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-  prefix: '/uploads/',
-  setHeaders: (res, path, stat) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://xibarubambouck.com'); // ou ton domaine précis
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  },
-});
+    prefix: '/uploads/',
+  });
 
 
   app.enableCors({
@@ -45,12 +36,12 @@ async function bootstrap() {
   });
 
   // Ajout CORS spécifique aux fichiers statiques
-  // app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
-  //   res.header('Access-Control-Allow-Origin', 'https://xibarubambouck.com');
-  //   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  //   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  //   next();
-  // });
+  app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+    res.header('Access-Control-Allow-Origin', 'https://xibarubambouck.com');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+  });
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
