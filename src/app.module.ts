@@ -19,6 +19,8 @@ import { MediaMeta } from './media/media.entity';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { DebugController } from './debug.controller';
 import { CommentModule } from './comment/comment.module';
+import { CloudinaryController } from './cloudinary/cloudinary.controller';
+import { CloudinaryService } from './cloudinary/cloudinary.service';
 
 @Module({
   imports: [
@@ -59,9 +61,10 @@ ssl: {
     ArticleModule,
     MediaModule,
     CommentModule,
+    
   ],
-  controllers: [AppController, DebugController],
-  providers: [AppService, DatabaseService],
+  controllers: [AppController, DebugController, CloudinaryController],
+  providers: [AppService, DatabaseService, CloudinaryService],
 })
 export class AppModule {
   constructor(private readonly databaseService: DatabaseService) {
