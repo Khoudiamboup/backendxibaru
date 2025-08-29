@@ -56,54 +56,33 @@ export class ArticleService {
     console.log('Article ID:', article.ID);
 
     // Modification: récupérer l'URL Cloudinary depuis la métadonnée cloud_url
-    // const imageMeta = await this.dataSource
-    //   .createQueryBuilder()
-    //   .select([
-    //     'file_meta.meta_value AS image_path',
-    //     'cloud_meta.meta_value AS cloud_url'
-    //   ])
-    //   .from('wp_postmeta', 'thumb_meta')
-    //   .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
-    //   .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
-    //   .where('thumb_meta.post_id = :postId', { postId: article.ID })
-    //   .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-    //   .getRawOne();
+    const imageMeta = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        'file_meta.meta_value AS image_path',
+        'cloud_meta.meta_value AS cloud_url'
+      ])
+      .from('wp_postmeta', 'thumb_meta')
+      .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
+      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
+      .where('thumb_meta.post_id = :postId', { postId: article.ID })
+      .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+      .getRawOne();
 
-    // console.log('Métadonnées image trouvées:', imageMeta);
+    console.log('Métadonnées image trouvées:', imageMeta);
 
-    // // Utiliser l'URL Cloudinary en priorité, sinon fallback sur l'ancien système
-    // const imageUrl = imageMeta?.cloud_url || (imageMeta?.image_path ? `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${imageMeta.image_path}` : null);
+    // Utiliser l'URL Cloudinary en priorité, sinon fallback sur l'ancien système
+    const imageUrl = imageMeta?.cloud_url || (imageMeta?.image_path ? `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${imageMeta.image_path}` : null);
 
-    // console.log('URL finale de l\'image:', imageUrl);
-    // Récupération uniquement du Cloudinary URL
-const imageMeta = await this.dataSource
-  .createQueryBuilder()
-  .select(['cloud_meta.meta_value AS cloud_url'])
-  .from('wp_postmeta', 'thumb_meta')
-  .leftJoin(
-    'wp_postmeta',
-    'cloud_meta',
-    'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey',
-    { cloudKey: 'cloud_url' }
-  )
-  .where('thumb_meta.post_id = :postId', { postId: article.ID })
-  .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-  .getRawOne();
-
-console.log('URL Cloudinary trouvée:', imageMeta?.cloud_url);
-
-const imageUrl = imageMeta?.cloud_url || null; // plus de fallback
-
+    console.log('URL finale de l\'image:', imageUrl);
 
     const categories = await this.getCategoriesByArticle(article.ID);
 
-    
-return {
-  ...article,
-  image: imageUrl,  // affichera null si pas de cloud_url
-  categories,
-};
-
+    return {
+      ...article,
+      image: imageUrl,
+      categories,
+    };
   }
 
   async getCategoriesByArticle(articleId: number) {
@@ -532,16 +511,24 @@ return {
 
     const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
 
+    // articles.forEach((article: any) => {
+    //   // Utiliser l'URL Cloudinary en priorité
+    //   if (article.cloud_url) {
+    //     article.image = article.cloud_url;
+    //   } else if (article.image_path) {
+    //     article.image = `${appUrl}/uploads/${article.image_path}`;
+    //   } else {
+    //     article.image = null; 
+    //   }
+    // });
     articles.forEach((article: any) => {
-      // Utiliser l'URL Cloudinary en priorité
-      if (article.cloud_url) {
-        article.image = article.cloud_url;
-      } else if (article.image_path) {
-        article.image = `${appUrl}/uploads/${article.image_path}`;
-      } else {
-        article.image = null; 
-      }
-    });
+  // Utiliser l'URL Cloudinary en priorité, sinon formatter correctement l'image_path
+  if (article.cloud_url) {
+    article.image = article.cloud_url;
+  } else {
+    article.image = this.formatImageUrl(article.image_path, appUrl);
+  }
+});
 
     const total = await this.dataSource
       .createQueryBuilder()
@@ -558,7 +545,17 @@ return {
       totalPages: totalPages || 1
     };
   }
-
+private formatImageUrl(imagePath: string | null, appUrl: string): string | null {
+  if (!imagePath) return null;
+  
+  // Si c'est déjà une URL complète (commence par http:// ou https://), la retourner telle quelle
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  
+  // Sinon, construire l'URL avec le préfixe
+  return `${appUrl}/uploads/${imagePath}`;
+}
   async searchArticles(query: string, page = 1, limit = 10) {
     const offset = (page - 1) * limit;
 
