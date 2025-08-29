@@ -19,8 +19,6 @@ import { MediaMeta } from './media/media.entity';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { DebugController } from './debug.controller';
 import { CommentModule } from './comment/comment.module';
-import { CloudinaryController } from './cloudinary/cloudinary.controller';
-import { CloudinaryService } from './cloudinary/cloudinary.service';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
