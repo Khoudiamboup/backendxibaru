@@ -21,11 +21,13 @@ import { DebugController } from './debug.controller';
 import { CommentModule } from './comment/comment.module';
 import { CloudinaryController } from './cloudinary/cloudinary.controller';
 import { CloudinaryService } from './cloudinary/cloudinary.service';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
 
     ServeStaticModule.forRoot({
@@ -61,10 +63,11 @@ ssl: {
     ArticleModule,
     MediaModule,
     CommentModule,
+    CloudinaryModule,
     
   ],
-  controllers: [AppController, DebugController, CloudinaryController],
-  providers: [AppService, DatabaseService, CloudinaryService],
+  controllers: [AppController, DebugController],
+  providers: [AppService, DatabaseService],
 })
 export class AppModule {
   constructor(private readonly databaseService: DatabaseService) {
