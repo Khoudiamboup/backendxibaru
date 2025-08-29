@@ -511,24 +511,17 @@ export class ArticleService {
 
     const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
 
-    // articles.forEach((article: any) => {
-    //   // Utiliser l'URL Cloudinary en priorité
-    //   if (article.cloud_url) {
-    //     article.image = article.cloud_url;
-    //   } else if (article.image_path) {
-    //     article.image = `${appUrl}/uploads/${article.image_path}`;
-    //   } else {
-    //     article.image = null; 
-    //   }
-    // });
     articles.forEach((article: any) => {
-  // Utiliser l'URL Cloudinary en priorité, sinon formatter correctement l'image_path
-  if (article.cloud_url) {
-    article.image = article.cloud_url;
-  } else {
-    article.image = this.formatImageUrl(article.image_path, appUrl);
-  }
-});
+      // Utiliser l'URL Cloudinary en priorité
+      if (article.cloud_url) {
+        article.image = article.cloud_url;
+      } else if (article.image_path) {
+        article.image = `${appUrl}/uploads/${article.image_path}`;
+      } else {
+        article.image = null; 
+      }
+    });
+  
 
     const total = await this.dataSource
       .createQueryBuilder()
@@ -545,17 +538,7 @@ export class ArticleService {
       totalPages: totalPages || 1
     };
   }
-private formatImageUrl(imagePath: string | null, appUrl: string): string | null {
-  if (!imagePath) return null;
   
-  // Si c'est déjà une URL complète (commence par http:// ou https://), la retourner telle quelle
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
-  }
-  
-  // Sinon, construire l'URL avec le préfixe
-  return `${appUrl}/uploads/${imagePath}`;
-}
   async searchArticles(query: string, page = 1, limit = 10) {
     const offset = (page - 1) * limit;
 
