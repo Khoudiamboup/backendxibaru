@@ -41,49 +41,49 @@ export class ArticleService {
     return articlesWithAuthors;
   }
 
-  async findBySlug(slug: string) {
-    const article = await this.articleRepo.findOneBy({
-      postName: slug,
-      postStatus: 'publish'
-    });
+  // async findBySlug(slug: string) {
+  //   const article = await this.articleRepo.findOneBy({
+  //     postName: slug,
+  //     postStatus: 'publish'
+  //   });
 
-    if (!article) {
-      console.log('Article non trouvé pour ce slug:', slug);
-      throw new NotFoundException('Article non trouvé');
-    }
+  //   if (!article) {
+  //     console.log('Article non trouvé pour ce slug:', slug);
+  //     throw new NotFoundException('Article non trouvé');
+  //   }
 
-    console.log('=== RECHERCHE IMAGE POUR ARTICLE ===');
-    console.log('Article ID:', article.ID);
+  //   console.log('=== RECHERCHE IMAGE POUR ARTICLE ===');
+  //   console.log('Article ID:', article.ID);
 
-    // Modification: récupérer l'URL Cloudinary depuis la métadonnée cloud_url
-    const imageMeta = await this.dataSource
-      .createQueryBuilder()
-      .select([
-        'file_meta.meta_value AS image_path',
-        'cloud_meta.meta_value AS cloud_url'
-      ])
-      .from('wp_postmeta', 'thumb_meta')
-      .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
-      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
-      .where('thumb_meta.post_id = :postId', { postId: article.ID })
-      .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-      .getRawOne();
+  //   // Modification: récupérer l'URL Cloudinary depuis la métadonnée cloud_url
+  //   const imageMeta = await this.dataSource
+  //     .createQueryBuilder()
+  //     .select([
+  //       'file_meta.meta_value AS image_path',
+  //       'cloud_meta.meta_value AS cloud_url'
+  //     ])
+  //     .from('wp_postmeta', 'thumb_meta')
+  //     .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
+  //     .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
+  //     .where('thumb_meta.post_id = :postId', { postId: article.ID })
+  //     .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+  //     .getRawOne();
 
-    console.log('Métadonnées image trouvées:', imageMeta);
+  //   console.log('Métadonnées image trouvées:', imageMeta);
 
-    // Utiliser l'URL Cloudinary en priorité, sinon fallback sur l'ancien système
-    const imageUrl = imageMeta?.cloud_url || (imageMeta?.image_path ? `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${imageMeta.image_path}` : null);
+  //   // Utiliser l'URL Cloudinary en priorité, sinon fallback sur l'ancien système
+  //   const imageUrl = imageMeta?.cloud_url || (imageMeta?.image_path ? `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${imageMeta.image_path}` : null);
 
-    console.log('URL finale de l\'image:', imageUrl);
+  //   console.log('URL finale de l\'image:', imageUrl);
 
-    const categories = await this.getCategoriesByArticle(article.ID);
+  //   const categories = await this.getCategoriesByArticle(article.ID);
 
-    return {
-      ...article,
-      image: imageUrl,
-      categories,
-    };
-  }
+  //   return {
+  //     ...article,
+  //     image: imageUrl,
+  //     categories,
+  //   };
+  // }
 
   async getCategoriesByArticle(articleId: number) {
     const categories = await this.dataSource
@@ -365,96 +365,96 @@ export class ArticleService {
     });
   }
 
-  async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
-    const offset = (page - 1) * limit;
+  // async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
+  //   const offset = (page - 1) * limit;
 
-    const qb = this.dataSource
-      .createQueryBuilder()
-      .select([
-        'article.ID AS id',
-        'article.post_title AS title',
-        'article.post_excerpt AS excerpt',
-        'article.post_content AS content',
-        'article.post_date AS date',
-        'article.post_name AS slug',
-        'file_meta.meta_value AS image_path',
-        'cloud_meta.meta_value AS cloud_url', // Ajout de l'URL Cloudinary
-      ])
-      .from(Article, 'article')
-      .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
-        thumbnailKey: '_thumbnail_id',
-      })
-      .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
-        fileKey: '_wp_attached_file',
-      })
-      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', {
-        cloudKey: 'cloud_url',
-      })
-      .where('article.post_status = :status', { status: 'publish' });
+  //   const qb = this.dataSource
+  //     .createQueryBuilder()
+  //     .select([
+  //       'article.ID AS id',
+  //       'article.post_title AS title',
+  //       'article.post_excerpt AS excerpt',
+  //       'article.post_content AS content',
+  //       'article.post_date AS date',
+  //       'article.post_name AS slug',
+  //       'file_meta.meta_value AS image_path',
+  //       'cloud_meta.meta_value AS cloud_url', // Ajout de l'URL Cloudinary
+  //     ])
+  //     .from(Article, 'article')
+  //     .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
+  //       thumbnailKey: '_thumbnail_id',
+  //     })
+  //     .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
+  //       fileKey: '_wp_attached_file',
+  //     })
+  //     .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', {
+  //       cloudKey: 'cloud_url',
+  //     })
+  //     .where('article.post_status = :status', { status: 'publish' });
 
-    if (categoryId) {
-      qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
-        .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-        .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-        .andWhere('tt.term_id = :categoryId', { categoryId });
-    }
+  //   if (categoryId) {
+  //     qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+  //       .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+  //       .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+  //       .andWhere('tt.term_id = :categoryId', { categoryId });
+  //   }
 
-    qb.orderBy('article.post_date', 'DESC')
-      .offset(offset)
-      .limit(limit);
+  //   qb.orderBy('article.post_date', 'DESC')
+  //     .offset(offset)
+  //     .limit(limit);
 
-    const articles = await qb.getRawMany();
+  //   const articles = await qb.getRawMany();
 
-    const countQb = this.dataSource
-      .createQueryBuilder()
-      .select('COUNT(*)', 'count')
-      .from(Article, 'article')
-      .where('article.post_status = :status', { status: 'publish' });
+  //   const countQb = this.dataSource
+  //     .createQueryBuilder()
+  //     .select('COUNT(*)', 'count')
+  //     .from(Article, 'article')
+  //     .where('article.post_status = :status', { status: 'publish' });
 
-    if (categoryId) {
-      countQb
-        .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
-        .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-        .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-        .andWhere('tt.term_id = :categoryId', { categoryId });
-    }
+  //   if (categoryId) {
+  //     countQb
+  //       .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+  //       .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+  //       .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+  //       .andWhere('tt.term_id = :categoryId', { categoryId });
+  //   }
 
-    const totalResult = await countQb.getRawOne();
-    const total = parseInt(totalResult.count, 10);
+  //   const totalResult = await countQb.getRawOne();
+  //   const total = parseInt(totalResult.count, 10);
 
-    const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
+  //   const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
 
-    // Format articles and add categories for each
-    const formattedArticles = await Promise.all(
-      articles.map(async (item: any) => {
-        // Get categories for each article
-        const categories = await this.getCategoriesByArticle(item.id);
+  //   // Format articles and add categories for each
+  //   const formattedArticles = await Promise.all(
+  //     articles.map(async (item: any) => {
+  //       // Get categories for each article
+  //       const categories = await this.getCategoriesByArticle(item.id);
         
-        // Utiliser l'URL Cloudinary en priorité
-        const imageUrl = item.cloud_url || (item.image_path ? `${appUrl}/uploads/${item.image_path}` : null);
+  //       // Utiliser l'URL Cloudinary en priorité
+  //       const imageUrl = item.cloud_url || (item.image_path ? `${appUrl}/uploads/${item.image_path}` : null);
         
-        return {
-          id: item.id,
-          title: item.title,
-          excerpt: item.excerpt,
-          content: item.content,
-          slug: item.slug,
-          date: item.date,
-          image: imageUrl,
-          categories: categories,
-        };
-      })
-    );
+  //       return {
+  //         id: item.id,
+  //         title: item.title,
+  //         excerpt: item.excerpt,
+  //         content: item.content,
+  //         slug: item.slug,
+  //         date: item.date,
+  //         image: imageUrl,
+  //         categories: categories,
+  //       };
+  //     })
+  //   );
 
-    return {
-      articles: formattedArticles,
-      total,
-      totalPages: Math.ceil(total / limit),
-      articlesCount: formattedArticles.length,
-      firstArticle: formattedArticles[0] || null,
-      firstArticleImage: formattedArticles[0]?.image || null,
-    };
-  }
+  //   return {
+  //     articles: formattedArticles,
+  //     total,
+  //     totalPages: Math.ceil(total / limit),
+  //     articlesCount: formattedArticles.length,
+  //     firstArticle: formattedArticles[0] || null,
+  //     firstArticleImage: formattedArticles[0]?.image || null,
+  //   };
+  // }
 
   async findDrafts() {
     return this.articleRepo.find({
@@ -481,135 +481,382 @@ export class ArticleService {
     return this.articleRepo.save(article);
   }
 
-  async findWithPagination(page: number, limit: number) {
-    const offset = (page - 1) * limit;
+  // async findWithPagination(page: number, limit: number) {
+  //   const offset = (page - 1) * limit;
 
-    const articles = await this.dataSource
-      .createQueryBuilder()
-      .select([
-        'article.ID AS id',
-        'article.post_title AS title',
-        'article.post_excerpt AS excerpt',
-        'article.post_content AS content',
-        'article.post_date AS postDate',
-        'article.post_name AS slug',
-        'article.post_status AS postStatus',
-        'article.post_type AS postType',
-        'article.guid AS guid',
-        'article.post_author AS postAuthor',
-        'media.meta_value AS image_path',
-        'cloud_meta.meta_value AS cloud_url' // Ajout de l'URL Cloudinary
-      ])
-      .from(Article, 'article')
-      .leftJoin(MediaMeta, 'media', 'media.post_id = article.ID AND media.meta_key = "_wp_attached_file"')
-      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = article.ID AND cloud_meta.meta_key = "cloud_url"')
-      .where('article.post_status = :status', { status: 'publish' })
-      .orderBy('article.post_date', 'DESC')
-      .offset(offset)
-      .limit(limit)
-      .getRawMany();
+  //   const articles = await this.dataSource
+  //     .createQueryBuilder()
+  //     .select([
+  //       'article.ID AS id',
+  //       'article.post_title AS title',
+  //       'article.post_excerpt AS excerpt',
+  //       'article.post_content AS content',
+  //       'article.post_date AS postDate',
+  //       'article.post_name AS slug',
+  //       'article.post_status AS postStatus',
+  //       'article.post_type AS postType',
+  //       'article.guid AS guid',
+  //       'article.post_author AS postAuthor',
+  //       'media.meta_value AS image_path',
+  //       'cloud_meta.meta_value AS cloud_url' // Ajout de l'URL Cloudinary
+  //     ])
+  //     .from(Article, 'article')
+  //     .leftJoin(MediaMeta, 'media', 'media.post_id = article.ID AND media.meta_key = "_wp_attached_file"')
+  //     .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = article.ID AND cloud_meta.meta_key = "cloud_url"')
+  //     .where('article.post_status = :status', { status: 'publish' })
+  //     .orderBy('article.post_date', 'DESC')
+  //     .offset(offset)
+  //     .limit(limit)
+  //     .getRawMany();
 
-    const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
+  //   const appUrl = process.env.APP_URL || 'https://xibarubamback.onrender.com';
 
-    articles.forEach((article: any) => {
-      // Utiliser l'URL Cloudinary en priorité
-      if (article.cloud_url) {
-        article.image = article.cloud_url;
-      } else if (article.image_path) {
-        article.image = `${appUrl}/uploads/${article.image_path}`;
-      } else {
-        article.image = null; 
-      }
-    });
+  //   articles.forEach((article: any) => {
+  //     // Utiliser l'URL Cloudinary en priorité
+  //     if (article.cloud_url) {
+  //       article.image = article.cloud_url;
+  //     } else if (article.image_path) {
+  //       article.image = `${appUrl}/uploads/${article.image_path}`;
+  //     } else {
+  //       article.image = null; 
+  //     }
+  //   });
   
 
-    const total = await this.dataSource
-      .createQueryBuilder()
-      .select('COUNT(*)', 'count')
-      .from(Article, 'article')
-      .where('article.post_status = :status', { status: 'publish' })
-      .getRawOne();
+  //   const total = await this.dataSource
+  //     .createQueryBuilder()
+  //     .select('COUNT(*)', 'count')
+  //     .from(Article, 'article')
+  //     .where('article.post_status = :status', { status: 'publish' })
+  //     .getRawOne();
 
-    const totalPages = Math.ceil(total.count / limit);
+  //   const totalPages = Math.ceil(total.count / limit);
 
-    return {
-      articles,
-      total: parseInt(total.count, 10),
-      totalPages: totalPages || 1
-    };
-  }
+  //   return {
+  //     articles,
+  //     total: parseInt(total.count, 10),
+  //     totalPages: totalPages || 1
+  //   };
+  // }
   
-  async searchArticles(query: string, page = 1, limit = 10) {
-    const offset = (page - 1) * limit;
+  // async searchArticles(query: string, page = 1, limit = 10) {
+  //   const offset = (page - 1) * limit;
 
-    const articles = await this.articleRepo
-      .createQueryBuilder('article')
-      .where('article.post_title LIKE :searchTerm', {
-        searchTerm: `%${query}%`,
-      })
-      .andWhere('article.post_status = :status', { status: 'publish' })
-      .andWhere('article.post_type = :type', { type: 'post' })
-      .orderBy('article.post_date', 'DESC')
-      .offset(offset)
-      .limit(limit)
-      .getMany();
+  //   const articles = await this.articleRepo
+  //     .createQueryBuilder('article')
+  //     .where('article.post_title LIKE :searchTerm', {
+  //       searchTerm: `%${query}%`,
+  //     })
+  //     .andWhere('article.post_status = :status', { status: 'publish' })
+  //     .andWhere('article.post_type = :type', { type: 'post' })
+  //     .orderBy('article.post_date', 'DESC')
+  //     .offset(offset)
+  //     .limit(limit)
+  //     .getMany();
 
-    const total = await this.articleRepo
-      .createQueryBuilder('article')
-      .where('article.post_title LIKE :searchTerm', {
-        searchTerm: `%${query}%`,
-      })
-      .andWhere('article.post_status = :status', { status: 'publish' })
-      .andWhere('article.post_type = :type', { type: 'post' })
-      .getCount();
+  //   const total = await this.articleRepo
+  //     .createQueryBuilder('article')
+  //     .where('article.post_title LIKE :searchTerm', {
+  //       searchTerm: `%${query}%`,
+  //     })
+  //     .andWhere('article.post_status = :status', { status: 'publish' })
+  //     .andWhere('article.post_type = :type', { type: 'post' })
+  //     .getCount();
 
-    const enrichedArticles = await Promise.all(
-      articles.map(async (article) => {
-        const imageMeta = await this.dataSource
-          .createQueryBuilder()
-          .select([
-            'file_meta.meta_value AS image_path',
-            'cloud_meta.meta_value AS cloud_url'
-          ])
-          .from('wp_postmeta', 'thumb_meta')
-          .leftJoin(
-            'wp_postmeta',
-            'file_meta',
-            'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey',
-            { fileKey: '_wp_attached_file' }
-          )
-          .leftJoin(
-            'wp_postmeta',
-            'cloud_meta',
-            'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey',
-            { cloudKey: 'cloud_url' }
-          )
-          .where('thumb_meta.post_id = :postId', { postId: article.ID })
-          .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-          .getRawOne();
+  //   const enrichedArticles = await Promise.all(
+  //     articles.map(async (article) => {
+  //       const imageMeta = await this.dataSource
+  //         .createQueryBuilder()
+  //         .select([
+  //           'file_meta.meta_value AS image_path',
+  //           'cloud_meta.meta_value AS cloud_url'
+  //         ])
+  //         .from('wp_postmeta', 'thumb_meta')
+  //         .leftJoin(
+  //           'wp_postmeta',
+  //           'file_meta',
+  //           'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey',
+  //           { fileKey: '_wp_attached_file' }
+  //         )
+  //         .leftJoin(
+  //           'wp_postmeta',
+  //           'cloud_meta',
+  //           'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey',
+  //           { cloudKey: 'cloud_url' }
+  //         )
+  //         .where('thumb_meta.post_id = :postId', { postId: article.ID })
+  //         .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+  //         .getRawOne();
 
-        // Utiliser l'URL Cloudinary en priorité
-        const imageUrl = imageMeta?.cloud_url || (imageMeta?.image_path ? `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${imageMeta.image_path}` : null);
+  //       // Utiliser l'URL Cloudinary en priorité
+  //       const imageUrl = imageMeta?.cloud_url || (imageMeta?.image_path ? `${process.env.APP_URL || 'https://xibarubamback.onrender.com'}/uploads/${imageMeta.image_path}` : null);
 
-        const categories = await this.getCategoriesByArticle(article.ID);
+  //       const categories = await this.getCategoriesByArticle(article.ID);
 
-        return {
-          id: article.ID,
-          title: article.postTitle,
-          excerpt: article.postExcerpt,
-          content: article.postContent,
-          slug: article.postName,
-          date: article.postDate,
-          image: imageUrl,
-          categories,
-        };
-      })
-    );
+  //       return {
+  //         id: article.ID,
+  //         title: article.postTitle,
+  //         excerpt: article.postExcerpt,
+  //         content: article.postContent,
+  //         slug: article.postName,
+  //         date: article.postDate,
+  //         image: imageUrl,
+  //         categories,
+  //       };
+  //     })
+  //   );
 
-    return {
-      articles: enrichedArticles,
-      total,
-      totalPages: Math.ceil(total / limit),
-    };
+  //   return {
+  //     articles: enrichedArticles,
+  //     total,
+  //     totalPages: Math.ceil(total / limit),
+  //   };
+  // }
+  // Remplacez ces méthodes dans votre ArticleService
+
+async findBySlug(slug: string) {
+  const article = await this.articleRepo.findOneBy({
+    postName: slug,
+    postStatus: 'publish'
+  });
+
+  if (!article) {
+    console.log('Article non trouvé pour ce slug:', slug);
+    throw new NotFoundException('Article non trouvé');
   }
+
+  const imageMeta = await this.dataSource
+    .createQueryBuilder()
+    .select([
+      'file_meta.meta_value AS image_path',
+      'cloud_meta.meta_value AS cloud_url'
+    ])
+    .from('wp_postmeta', 'thumb_meta')
+    .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
+    .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
+    .where('thumb_meta.post_id = :postId', { postId: article.ID })
+    .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+    .getRawOne();
+
+  // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
+  const imageUrl = imageMeta?.cloud_url || imageMeta?.image_path || null;
+
+  const categories = await this.getCategoriesByArticle(article.ID);
+
+  return {
+    ...article,
+    image: imageUrl,
+    categories,
+  };
+}
+
+async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
+  const offset = (page - 1) * limit;
+
+  const qb = this.dataSource
+    .createQueryBuilder()
+    .select([
+      'article.ID AS id',
+      'article.post_title AS title',
+      'article.post_excerpt AS excerpt',
+      'article.post_content AS content',
+      'article.post_date AS date',
+      'article.post_name AS slug',
+      'file_meta.meta_value AS image_path',
+      'cloud_meta.meta_value AS cloud_url',
+    ])
+    .from(Article, 'article')
+    .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
+      thumbnailKey: '_thumbnail_id',
+    })
+    .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
+      fileKey: '_wp_attached_file',
+    })
+    .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', {
+      cloudKey: 'cloud_url',
+    })
+    .where('article.post_status = :status', { status: 'publish' });
+
+  if (categoryId) {
+    qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+      .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+      .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+      .andWhere('tt.term_id = :categoryId', { categoryId });
+  }
+
+  qb.orderBy('article.post_date', 'DESC')
+    .offset(offset)
+    .limit(limit);
+
+  const articles = await qb.getRawMany();
+
+  const countQb = this.dataSource
+    .createQueryBuilder()
+    .select('COUNT(*)', 'count')
+    .from(Article, 'article')
+    .where('article.post_status = :status', { status: 'publish' });
+
+  if (categoryId) {
+    countQb
+      .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+      .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+      .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+      .andWhere('tt.term_id = :categoryId', { categoryId });
+  }
+
+  const totalResult = await countQb.getRawOne();
+  const total = parseInt(totalResult.count, 10);
+
+  const formattedArticles = await Promise.all(
+    articles.map(async (item: any) => {
+      const categories = await this.getCategoriesByArticle(item.id);
+      
+      // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
+      const imageUrl = item.cloud_url || item.image_path || null;
+      
+      return {
+        id: item.id,
+        title: item.title,
+        excerpt: item.excerpt,
+        content: item.content,
+        slug: item.slug,
+        date: item.date,
+        image: imageUrl,
+        categories: categories,
+      };
+    })
+  );
+
+  return {
+    articles: formattedArticles,
+    total,
+    totalPages: Math.ceil(total / limit),
+    articlesCount: formattedArticles.length,
+    firstArticle: formattedArticles[0] || null,
+    firstArticleImage: formattedArticles[0]?.image || null,
+  };
+}
+
+async findWithPagination(page: number, limit: number) {
+  const offset = (page - 1) * limit;
+
+  const articles = await this.dataSource
+    .createQueryBuilder()
+    .select([
+      'article.ID AS id',
+      'article.post_title AS title',
+      'article.post_excerpt AS excerpt',
+      'article.post_content AS content',
+      'article.post_date AS postDate',
+      'article.post_name AS slug',
+      'article.post_status AS postStatus',
+      'article.post_type AS postType',
+      'article.guid AS guid',
+      'article.post_author AS postAuthor',
+      'media.meta_value AS image_path',
+      'cloud_meta.meta_value AS cloud_url'
+    ])
+    .from(Article, 'article')
+    .leftJoin(MediaMeta, 'media', 'media.post_id = article.ID AND media.meta_key = "_wp_attached_file"')
+    .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = article.ID AND cloud_meta.meta_key = "cloud_url"')
+    .where('article.post_status = :status', { status: 'publish' })
+    .orderBy('article.post_date', 'DESC')
+    .offset(offset)
+    .limit(limit)
+    .getRawMany();
+
+  articles.forEach((article: any) => {
+    // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
+    article.image = article.cloud_url || article.image_path || null;
+  });
+
+  const total = await this.dataSource
+    .createQueryBuilder()
+    .select('COUNT(*)', 'count')
+    .from(Article, 'article')
+    .where('article.post_status = :status', { status: 'publish' })
+    .getRawOne();
+
+  const totalPages = Math.ceil(total.count / limit);
+
+  return {
+    articles,
+    total: parseInt(total.count, 10),
+    totalPages: totalPages || 1
+  };
+}
+
+async searchArticles(query: string, page = 1, limit = 10) {
+  const offset = (page - 1) * limit;
+
+  const articles = await this.articleRepo
+    .createQueryBuilder('article')
+    .where('article.post_title LIKE :searchTerm', {
+      searchTerm: `%${query}%`,
+    })
+    .andWhere('article.post_status = :status', { status: 'publish' })
+    .andWhere('article.post_type = :type', { type: 'post' })
+    .orderBy('article.post_date', 'DESC')
+    .offset(offset)
+    .limit(limit)
+    .getMany();
+
+  const total = await this.articleRepo
+    .createQueryBuilder('article')
+    .where('article.post_title LIKE :searchTerm', {
+      searchTerm: `%${query}%`,
+    })
+    .andWhere('article.post_status = :status', { status: 'publish' })
+    .andWhere('article.post_type = :type', { type: 'post' })
+    .getCount();
+
+  const enrichedArticles = await Promise.all(
+    articles.map(async (article) => {
+      const imageMeta = await this.dataSource
+        .createQueryBuilder()
+        .select([
+          'file_meta.meta_value AS image_path',
+          'cloud_meta.meta_value AS cloud_url'
+        ])
+        .from('wp_postmeta', 'thumb_meta')
+        .leftJoin(
+          'wp_postmeta',
+          'file_meta',
+          'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey',
+          { fileKey: '_wp_attached_file' }
+        )
+        .leftJoin(
+          'wp_postmeta',
+          'cloud_meta',
+          'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey',
+          { cloudKey: 'cloud_url' }
+        )
+        .where('thumb_meta.post_id = :postId', { postId: article.ID })
+        .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+        .getRawOne();
+
+      // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
+      const imageUrl = imageMeta?.cloud_url || imageMeta?.image_path || null;
+
+      const categories = await this.getCategoriesByArticle(article.ID);
+
+      return {
+        id: article.ID,
+        title: article.postTitle,
+        excerpt: article.postExcerpt,
+        content: article.postContent,
+        slug: article.postName,
+        date: article.postDate,
+        image: imageUrl,
+        categories,
+      };
+    })
+  );
+
+  return {
+    articles: enrichedArticles,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
+}
 }
