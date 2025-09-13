@@ -1035,7 +1035,6 @@ async getArticleBySlug(slug: string) {
   }
 }
 
-// Fonction pour mettre à jour seulement l'image par slug
   async updateArticleImageBySlug(slug: string, cloudinaryUrl: string) {
     try {
       const response = await fetch(`https://xibarubamback.onrender.com/articles/by-slug/${encodeURIComponent(slug)}/image`, {
@@ -1053,7 +1052,7 @@ async getArticleBySlug(slug: string) {
 
       return await response.json();
     } catch (error) {
-      console.error("❌ Erreur lors de la mise à jour de l'image par slug:", error);
+      console.error(" Erreur lors de la mise à jour de l'image par slug:", error);
       throw error;
     }
   }
