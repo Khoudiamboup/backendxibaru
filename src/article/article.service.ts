@@ -1,4 +1,3 @@
-
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Article } from './article.entity';
@@ -42,212 +41,173 @@ export class ArticleService {
   }
 
   async updateWithImage(
-  id: number, 
-  updateData: Partial<CreateArticleDto>, 
-  cloudinaryUrl?: string
-): Promise<any> {
-  console.log('=== MISE À JOUR ARTICLE AVEC IMAGE ===');
-  console.log('ID:', id);
-  console.log('Données de mise à jour:', updateData);
-  console.log('URL Cloudinary:', cloudinaryUrl);
+    id: number,
+    updateData: Partial<CreateArticleDto>,
+    cloudinaryUrl?: string
+  ): Promise<any> {
+   
 
-  // Vérifier que l'article existe
-  const existingArticle = await this.articleRepo.findOneBy({ ID: id });
-  if (!existingArticle) {
-    throw new NotFoundException('Article non trouvé');
-  }
-
-  // Préparer les données de mise à jour
-  const updatePayload: Partial<Article> = {
-    postModified: new Date(),
-    postModifiedGmt: new Date()
-  };
-
-  // Mapper les champs du DTO vers l'entité Article
-  if (updateData.postTitle) {
-    updatePayload.postTitle = updateData.postTitle.trim();
-  }
-  if (updateData.postContent) {
-    updatePayload.postContent = updateData.postContent.trim();
-  }
-  if (updateData.postExcerpt !== undefined) {
-    updatePayload.postExcerpt = updateData.postExcerpt.trim();
-  }
-  if (updateData.postStatus) {
-    updatePayload.postStatus = updateData.postStatus.trim();
-  }
-  if (updateData.postName) {
-    updatePayload.postName = this.slugify(updateData.postName);
-  } else if (updateData.postTitle) {
-    // Générer un nouveau slug si le titre change
-    updatePayload.postName = this.slugify(updateData.postTitle);
-  }
-
-  // Mettre à jour l'article
-  await this.articleRepo.update(id, updatePayload);
-
-  // Gérer la mise à jour de l'image si une nouvelle URL Cloudinary est fournie
-  if (cloudinaryUrl) {
-    console.log('Mise à jour de l\'image Cloudinary...');
-    await this.updateArticleImage(id, cloudinaryUrl);
-  }
-
-  // Retourner l'article mis à jour avec ses données complètes
-  return this.findBySlug(updatePayload.postName || existingArticle.postName);
-}
-
-async updateArticleImage(articleId: number, cloudinaryUrl: string): Promise<void> {
-  console.log('=== MISE À JOUR IMAGE ARTICLE ===');
-  console.log('Article ID:', articleId);
-  console.log('Nouvelle URL Cloudinary:', cloudinaryUrl);
-
-  try {
-    // 1. Récupérer l'ID de l'image actuelle (thumbnail_id) si elle existe
-    const currentThumbnail = await this.dataSource
-      .createQueryBuilder()
-      .select('meta.meta_value', 'thumbnail_id')
-      .from('wp_postmeta', 'meta')
-      .where('meta.post_id = :postId', { postId: articleId })
-      .andWhere('meta.meta_key = :metaKey', { metaKey: '_thumbnail_id' })
-      .getRawOne();
-
-    if (currentThumbnail?.thumbnail_id) {
-      console.log('Image existante trouvée, ID:', currentThumbnail.thumbnail_id);
-      
-      // 2. Mettre à jour l'entrée d'image existante
-      await this.updateImagePost(parseInt(currentThumbnail.thumbnail_id), cloudinaryUrl);
-      
-      // 3. Mettre à jour ou créer la métadonnée cloud_url
-      await this.updateOrCreateCloudinaryMeta(parseInt(currentThumbnail.thumbnail_id), cloudinaryUrl);
-      
-    } else {
-      console.log('Aucune image existante, création d\'une nouvelle...');
-      
-      // 4. Créer une nouvelle entrée d'image
-      const fileName = this.extractFileNameFromCloudinaryUrl(cloudinaryUrl);
-      const imageId = await this.createCloudinaryImagePost(cloudinaryUrl, fileName);
-      
-      // 5. Associer la nouvelle image à l'article
-      await this.attachImageToArticle(articleId, imageId);
+    const existingArticle = await this.articleRepo.findOneBy({ ID: id });
+    if (!existingArticle) {
+      throw new NotFoundException('Article non trouvé');
     }
 
-    console.log('✅ Image mise à jour avec succès');
-  } catch (error) {
-    console.error('❌ Erreur lors de la mise à jour de l\'image:', error);
-    throw error;
+    const updatePayload: Partial<Article> = {
+      postModified: new Date(),
+      postModifiedGmt: new Date()
+    };
+
+    if (updateData.postTitle) {
+      updatePayload.postTitle = updateData.postTitle.trim();
+    }
+    if (updateData.postContent) {
+      updatePayload.postContent = updateData.postContent.trim();
+    }
+    if (updateData.postExcerpt !== undefined) {
+      updatePayload.postExcerpt = updateData.postExcerpt.trim();
+    }
+    if (updateData.postStatus) {
+      updatePayload.postStatus = updateData.postStatus.trim();
+    }
+    if (updateData.postName) {
+      updatePayload.postName = this.slugify(updateData.postName);
+    } else if (updateData.postTitle) {
+      updatePayload.postName = this.slugify(updateData.postTitle);
+    }
+    await this.articleRepo.update(id, updatePayload);
+    if (cloudinaryUrl) {
+      await this.updateArticleImage(id, cloudinaryUrl);
+    }
+    return this.findBySlug(updatePayload.postName || existingArticle.postName);
   }
-}
 
-async updateImagePost(imageId: number, cloudinaryUrl: string): Promise<void> {
-  const fileName = this.extractFileNameFromCloudinaryUrl(cloudinaryUrl);
-  
-  // Mettre à jour l'entrée wp_posts pour l'image
-  await this.articleRepo.update(imageId, {
-    guid: cloudinaryUrl,
-    postTitle: fileName,
-    postName: this.slugify(fileName),
-    postModified: new Date(),
-    postModifiedGmt: new Date(),
-    postMimeType: this.getMimeTypeFromUrl(cloudinaryUrl)
-  });
+  async updateArticleImage(articleId: number, cloudinaryUrl: string): Promise<void> {
 
-  console.log(`Image post ${imageId} mise à jour avec la nouvelle URL`);
-}
+    try {
+      const currentThumbnail = await this.dataSource
+        .createQueryBuilder()
+        .select('meta.meta_value', 'thumbnail_id')
+        .from('wp_postmeta', 'meta')
+        .where('meta.post_id = :postId', { postId: articleId })
+        .andWhere('meta.meta_key = :metaKey', { metaKey: '_thumbnail_id' })
+        .getRawOne();
 
-async updateOrCreateCloudinaryMeta(imageId: number, cloudinaryUrl: string): Promise<void> {
-  // Vérifier si la métadonnée cloud_url existe déjà
-  const existingMeta = await this.dataSource
-    .createQueryBuilder()
-    .select('meta_id')
-    .from('wp_postmeta', 'meta')
-    .where('meta.post_id = :postId', { postId: imageId })
-    .andWhere('meta.meta_key = :metaKey', { metaKey: 'cloud_url' })
-    .getRawOne();
+      if (currentThumbnail?.thumbnail_id) {
+        await this.updateImagePost(parseInt(currentThumbnail.thumbnail_id), cloudinaryUrl);
+        await this.updateOrCreateCloudinaryMeta(parseInt(currentThumbnail.thumbnail_id), cloudinaryUrl);
 
-  if (existingMeta) {
-    // Mettre à jour la métadonnée existante
-    await this.dataSource
+      } else {
+        const fileName = this.extractFileNameFromCloudinaryUrl(cloudinaryUrl);
+        const imageId = await this.createCloudinaryImagePost(cloudinaryUrl, fileName);
+        await this.attachImageToArticle(articleId, imageId);
+      }
+
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour de l\'image:', error);
+      throw error;
+    }
+  }
+
+  async updateImagePost(imageId: number, cloudinaryUrl: string): Promise<void> {
+    const fileName = this.extractFileNameFromCloudinaryUrl(cloudinaryUrl);
+
+    await this.articleRepo.update(imageId, {
+      guid: cloudinaryUrl,
+      postTitle: fileName,
+      postName: this.slugify(fileName),
+      postModified: new Date(),
+      postModifiedGmt: new Date(),
+      postMimeType: this.getMimeTypeFromUrl(cloudinaryUrl)
+    });
+
+  }
+
+  async updateOrCreateCloudinaryMeta(imageId: number, cloudinaryUrl: string): Promise<void> {
+    const existingMeta = await this.dataSource
       .createQueryBuilder()
-      .update('wp_postmeta')
-      .set({ meta_value: cloudinaryUrl })
-      .where('post_id = :postId', { postId: imageId })
-      .andWhere('meta_key = :metaKey', { metaKey: 'cloud_url' })
-      .execute();
-    
-    console.log(`Métadonnée cloud_url mise à jour pour l'image ${imageId}`);
-  } else {
-    // Créer une nouvelle métadonnée
-    await this.dataSource
+      .select('meta_id')
+      .from('wp_postmeta', 'meta')
+      .where('meta.post_id = :postId', { postId: imageId })
+      .andWhere('meta.meta_key = :metaKey', { metaKey: 'cloud_url' })
+      .getRawOne();
+
+    if (existingMeta) {
+      await this.dataSource
+        .createQueryBuilder()
+        .update('wp_postmeta')
+        .set({ meta_value: cloudinaryUrl })
+        .where('post_id = :postId', { postId: imageId })
+        .andWhere('meta_key = :metaKey', { metaKey: 'cloud_url' })
+        .execute();
+
+      console.log(`Métadonnée cloud_url mise à jour pour l'image ${imageId}`);
+    } else {
+      await this.dataSource
+        .createQueryBuilder()
+        .insert()
+        .into('wp_postmeta')
+        .values({
+          post_id: imageId,
+          meta_key: 'cloud_url',
+          meta_value: cloudinaryUrl
+        })
+        .execute();
+
+      console.log(`Nouvelle métadonnée cloud_url créée pour l'image ${imageId}`);
+    }
+
+    const fileName = this.extractFileNameFromCloudinaryUrl(cloudinaryUrl);
+    const existingFile = await this.dataSource
       .createQueryBuilder()
-      .insert()
-      .into('wp_postmeta')
-      .values({
-        post_id: imageId,
-        meta_key: 'cloud_url',
-        meta_value: cloudinaryUrl
-      })
-      .execute();
-    
-    console.log(`Nouvelle métadonnée cloud_url créée pour l'image ${imageId}`);
+      .select('meta_id')
+      .from('wp_postmeta', 'meta')
+      .where('meta.post_id = :postId', { postId: imageId })
+      .andWhere('meta.meta_key = :metaKey', { metaKey: '_wp_attached_file' })
+      .getRawOne();
+
+    if (existingFile) {
+      await this.dataSource
+        .createQueryBuilder()
+        .update('wp_postmeta')
+        .set({ meta_value: fileName })
+        .where('post_id = :postId', { postId: imageId })
+        .andWhere('meta_key = :metaKey', { metaKey: '_wp_attached_file' })
+        .execute();
+    } else {
+      await this.dataSource
+        .createQueryBuilder()
+        .insert()
+        .into('wp_postmeta')
+        .values({
+          post_id: imageId,
+          meta_key: '_wp_attached_file',
+          meta_value: fileName
+        })
+        .execute();
+    }
   }
 
-  // Mettre à jour aussi _wp_attached_file si nécessaire
-  const fileName = this.extractFileNameFromCloudinaryUrl(cloudinaryUrl);
-  const existingFile = await this.dataSource
-    .createQueryBuilder()
-    .select('meta_id')
-    .from('wp_postmeta', 'meta')
-    .where('meta.post_id = :postId', { postId: imageId })
-    .andWhere('meta.meta_key = :metaKey', { metaKey: '_wp_attached_file' })
-    .getRawOne();
+  async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
+    const article = await this.articleRepo.findOneBy({ ID: id });
+    if (!article) {
+      throw new NotFoundException('Article non trouvé');
+    }
 
-  if (existingFile) {
-    await this.dataSource
-      .createQueryBuilder()
-      .update('wp_postmeta')
-      .set({ meta_value: fileName })
-      .where('post_id = :postId', { postId: imageId })
-      .andWhere('meta_key = :metaKey', { metaKey: '_wp_attached_file' })
-      .execute();
-  } else {
-    await this.dataSource
-      .createQueryBuilder()
-      .insert()
-      .into('wp_postmeta')
-      .values({
-        post_id: imageId,
-        meta_key: '_wp_attached_file',
-        meta_value: fileName
-      })
-      .execute();
+    const updateData = {
+      ...data,
+      postModified: new Date(),
+      postModifiedGmt: new Date()
+    };
+
+    await this.articleRepo.update(id, updateData);
+
+    const updatedArticle = await this.articleRepo.findOneBy({ ID: id });
+    if (!updatedArticle) {
+      throw new NotFoundException('Erreur lors de la récupération de l\'article mis à jour');
+    }
+
+    return updatedArticle;
   }
-}
-
-// Méthode utilitaire améliorée pour la mise à jour simple
-async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
-  const article = await this.articleRepo.findOneBy({ ID: id });
-  if (!article) {
-    throw new NotFoundException('Article non trouvé');
-  }
-
-  // Ajouter les timestamps de modification
-  const updateData = {
-    ...data,
-    postModified: new Date(),
-    postModifiedGmt: new Date()
-  };
-
-  await this.articleRepo.update(id, updateData);
-  
-  const updatedArticle = await this.articleRepo.findOneBy({ ID: id });
-  if (!updatedArticle) {
-    throw new NotFoundException('Erreur lors de la récupération de l\'article mis à jour');
-  }
-  
-  return updatedArticle;
-}
-
-
   async getCategoriesByArticle(articleId: number) {
     const categories = await this.dataSource
       .createQueryBuilder()
@@ -272,22 +232,20 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
   }
 
   async create(createArticleDto: CreateArticleDto) {
-    const { 
-      postTitle, 
-      postContent, 
-      postExcerpt = '', 
-      postStatus = 'draft', 
+    const {
+      postTitle,
+      postContent,
+      postExcerpt = '',
+      postStatus = 'draft',
       postName,
       thumbnailId,
-      cloudinaryUrl // Nouveau: URL Cloudinary au lieu d'imagePath
+      cloudinaryUrl 
     } = createArticleDto;
 
     if (!postTitle) throw new Error('postTitle is required');
     if (!postContent) throw new Error('postContent is required');
 
     const slug = postName || this.slugify(postTitle);
-
-    // Créer l'article
     const article = this.articleRepo.create({
       postTitle,
       postContent,
@@ -299,7 +257,7 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
       postDateGmt: new Date(),
       postModified: new Date(),
       postModifiedGmt: new Date(),
-      guid: '', 
+      guid: '',
       commentStatus: 'open',
       pingStatus: 'open',
       postPassword: '',
@@ -320,26 +278,14 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
 
     await this.articleRepo.save(savedArticle);
 
-    // Si une image Cloudinary est fournie, l'associer à l'article
     if (thumbnailId) {
       await this.attachImageToArticle(savedArticle.ID, thumbnailId);
     }
-
-    // Si une URL Cloudinary est fournie, créer l'entrée image et l'associer
     if (cloudinaryUrl) {
-      console.log('Traitement de l\'image Cloudinary:', cloudinaryUrl);
-      
-      // Extraire le nom du fichier de l'URL Cloudinary
       const fileName = this.extractFileNameFromCloudinaryUrl(cloudinaryUrl);
-      console.log('Nom du fichier extrait:', fileName);
-
-      // Créer l'entrée d'image avec l'URL Cloudinary
       const imageId = await this.createCloudinaryImagePost(cloudinaryUrl, fileName);
-      console.log('ID de l\'image créée:', imageId);
 
-      // Associer l'image à l'article
       await this.attachImageToArticle(savedArticle.ID, imageId);
-      console.log('Image associée à l\'article:', savedArticle.ID);
     }
 
     return savedArticle;
@@ -374,7 +320,6 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
 
     const savedImagePost = await this.articleRepo.save(imagePost);
 
-    // Ajouter les métadonnées de l'image Cloudinary
     await this.dataSource
       .createQueryBuilder()
       .insert()
@@ -396,10 +341,8 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
     return savedImagePost.ID;
   }
 
-  // Méthode pour extraire le nom du fichier d'une URL Cloudinary
   private extractFileNameFromCloudinaryUrl(url: string): string {
     try {
-      // URL Cloudinary format: https://res.cloudinary.com/daepsasbx/image/upload/v1234567890/folder/filename.ext
       const urlParts = url.split('/');
       const fileNameWithExt = urlParts[urlParts.length - 1];
       return fileNameWithExt || 'cloudinary-image';
@@ -408,18 +351,13 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
     }
   }
 
-  // Méthode pour obtenir le type MIME à partir de l'URL
   private getMimeTypeFromUrl(url: string): string {
     const fileName = this.extractFileNameFromCloudinaryUrl(url);
     return this.getMimeType(fileName);
   }
 
-  // Méthode pour associer une image à un article (inchangée)
   async attachImageToArticle(articleId: number, imageId: number): Promise<void> {
-    console.log('=== ASSOCIATION IMAGE À L\'ARTICLE ===');
-    console.log('Article ID:', articleId);
-    console.log('Image ID:', imageId);
-    
+
     try {
       const result = await this.dataSource
         .createQueryBuilder()
@@ -431,9 +369,9 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
           meta_value: imageId.toString()
         })
         .execute();
-      
+
       console.log('Résultat de l\'insertion thumbnail:', result);
-      
+
       // Vérifier que l'insertion a bien eu lieu
       const verification = await this.dataSource
         .createQueryBuilder()
@@ -442,19 +380,17 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
         .where('meta.post_id = :postId', { postId: articleId })
         .andWhere('meta.meta_key = :metaKey', { metaKey: '_thumbnail_id' })
         .getRawOne();
-        
+
       console.log('Vérification thumbnail dans la base:', verification);
     } catch (error) {
-      console.error('Erreur lors de l\'association image:', error);
       throw error;
     }
   }
 
-  // Méthode pour obtenir le type MIME d'un fichier (inchangée)
   private getMimeType(fileName: string): string {
     const extension = fileName.split('.').pop()?.toLowerCase();
     if (!extension) return 'application/octet-stream';
-    
+
     const mimeTypes: Record<string, string> = {
       'jpg': 'image/jpeg',
       'jpeg': 'image/jpeg',
@@ -466,17 +402,13 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
     return mimeTypes[extension] || 'application/octet-stream';
   }
 
-  // Méthode modifiée pour créer un article avec image Cloudinary
   async createWithImage(createArticleDto: CreateArticleDto, cloudinaryUrl?: string): Promise<any> {
-    // Créer l'article d'abord avec l'URL Cloudinary
     const articleWithCloudinary = {
       ...createArticleDto,
       cloudinaryUrl: cloudinaryUrl
     };
-    
-    const article = await this.create(articleWithCloudinary);
 
-    // Retourner l'article avec l'image
+    const article = await this.create(articleWithCloudinary);
     return this.findBySlug(article.postName);
   }
 
@@ -484,8 +416,8 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
     return title
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, '-')      
-      .replace(/[^\w\-]+/g, ''); 
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '');
   }
 
   async update(id: number, data: Partial<Article>) {
@@ -528,7 +460,7 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
     });
   }
 
- 
+
   async findDrafts() {
     return this.articleRepo.find({
       where: { postStatus: 'draft' },
@@ -542,269 +474,208 @@ async updateBasic(id: number, data: Partial<Article>): Promise<Article> {
       order: { postDate: 'DESC' },
     });
   }
-// 1. D'abord, vérifiez les articles qui ont des images mais pas de cloud_url
-async checkArticlesWithoutCloudinary() {
-  const articlesWithImages = await this.dataSource
-    .createQueryBuilder()
-    .select([
-      'p.ID as article_id',
-      'p.post_title as title',
-      'thumb.meta_value as thumbnail_id',
-      'file.meta_value as image_path',
-      'cloud.meta_value as cloud_url'
-    ])
-    .from('wp_posts', 'p')
-    .innerJoin('wp_postmeta', 'thumb', 'thumb.post_id = p.ID AND thumb.meta_key = "_thumbnail_id"')
-    .innerJoin('wp_postmeta', 'file', 'file.post_id = thumb.meta_value AND file.meta_key = "_wp_attached_file"')
-    .leftJoin('wp_postmeta', 'cloud', 'cloud.post_id = thumb.meta_value AND cloud.meta_key = "cloud_url"')
-    .where('p.post_type = :type', { type: 'post' })
-    .andWhere('p.post_status = :status', { status: 'publish' })
-    .getRawMany();
+  async checkArticlesWithoutCloudinary() {
+    const articlesWithImages = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        'p.ID as article_id',
+        'p.post_title as title',
+        'thumb.meta_value as thumbnail_id',
+        'file.meta_value as image_path',
+        'cloud.meta_value as cloud_url'
+      ])
+      .from('wp_posts', 'p')
+      .innerJoin('wp_postmeta', 'thumb', 'thumb.post_id = p.ID AND thumb.meta_key = "_thumbnail_id"')
+      .innerJoin('wp_postmeta', 'file', 'file.post_id = thumb.meta_value AND file.meta_key = "_wp_attached_file"')
+      .leftJoin('wp_postmeta', 'cloud', 'cloud.post_id = thumb.meta_value AND cloud.meta_key = "cloud_url"')
+      .where('p.post_type = :type', { type: 'post' })
+      .andWhere('p.post_status = :status', { status: 'publish' })
+      .getRawMany();
 
-  console.log(`Total d'articles avec images: ${articlesWithImages.length}`);
-  
-  const withoutCloudinary = articlesWithImages.filter(a => !a.cloud_url);
-  const withCloudinary = articlesWithImages.filter(a => a.cloud_url);
-  
-  console.log(`Articles SANS cloud_url: ${withoutCloudinary.length}`);
-  console.log(`Articles AVEC cloud_url: ${withCloudinary.length}`);
-  
-  return {
-    total: articlesWithImages.length,
-    withCloudinary: withCloudinary.length,
-    withoutCloudinary: withoutCloudinary.length,
-    articlesWithoutCloudinary: withoutCloudinary.slice(0, 10) // Premiers 10 pour debug
-  };
-}
+    const withoutCloudinary = articlesWithImages.filter(a => !a.cloud_url);
+    const withCloudinary = articlesWithImages.filter(a => a.cloud_url);
 
-// 2. Fonction pour migrer les images vers Cloudinary
-async migrateImagesToCloudinary() {
-  // Récupérer tous les articles qui ont des images mais pas de cloud_url
-  const articlesWithImages = await this.dataSource
-    .createQueryBuilder()
-    .select([
-      'p.ID as article_id',
-      'p.post_title as title',
-      'thumb.meta_value as thumbnail_id',
-      'file.meta_value as image_path'
-    ])
-    .from('wp_posts', 'p')
-    .innerJoin('wp_postmeta', 'thumb', 'thumb.post_id = p.ID AND thumb.meta_key = "_thumbnail_id"')
-    .innerJoin('wp_postmeta', 'file', 'file.post_id = thumb.meta_value AND file.meta_key = "_wp_attached_file"')
-    .leftJoin('wp_postmeta', 'cloud', 'cloud.post_id = thumb.meta_value AND cloud.meta_key = "cloud_url"')
-    .where('p.post_type = :type', { type: 'post' })
-    .andWhere('p.post_status = :status', { status: 'publish' })
-    .andWhere('cloud.meta_value IS NULL') // Seulement ceux sans cloud_url
-    .getRawMany();
+    return {
+      total: articlesWithImages.length,
+      withCloudinary: withCloudinary.length,
+      withoutCloudinary: withoutCloudinary.length,
+      articlesWithoutCloudinary: withoutCloudinary.slice(0, 10) // Premiers 10 pour debug
+    };
+  }
 
-  console.log(`${articlesWithImages.length} articles à migrer vers Cloudinary`);
+  async migrateImagesToCloudinary() {
+    const articlesWithImages = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        'p.ID as article_id',
+        'p.post_title as title',
+        'thumb.meta_value as thumbnail_id',
+        'file.meta_value as image_path'
+      ])
+      .from('wp_posts', 'p')
+      .innerJoin('wp_postmeta', 'thumb', 'thumb.post_id = p.ID AND thumb.meta_key = "_thumbnail_id"')
+      .innerJoin('wp_postmeta', 'file', 'file.post_id = thumb.meta_value AND file.meta_key = "_wp_attached_file"')
+      .leftJoin('wp_postmeta', 'cloud', 'cloud.post_id = thumb.meta_value AND cloud.meta_key = "cloud_url"')
+      .where('p.post_type = :type', { type: 'post' })
+      .andWhere('p.post_status = :status', { status: 'publish' })
+      .andWhere('cloud.meta_value IS NULL') // Seulement ceux sans cloud_url
+      .getRawMany();
 
-  const cloudinary = require('cloudinary').v2;
-  
-  // Configuration Cloudinary (assurez-vous d'avoir les bonnes variables d'environnement)
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
+    const cloudinary = require('cloudinary').v2;
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
 
-  let successCount = 0;
-  let errorCount = 0;
+    let successCount = 0;
+    let errorCount = 0;
 
-  for (const article of articlesWithImages) {
-    try {
-      console.log(`\n--- Traitement article ${article.article_id}: ${article.title} ---`);
-      console.log(`Image path: ${article.image_path}`);
-      
-      // Construire le chemin complet vers l'image locale
-      const imagePath = article.image_path;
-      const localImagePath = `uploads/${imagePath}`;
-      
-      // Vérifier si le fichier existe localement
-      const fs = require('fs');
-      const path = require('path');
-      const fullPath = path.join(process.cwd(), localImagePath);
-      
-      if (!fs.existsSync(fullPath)) {
-        console.log(`⚠️  Fichier non trouvé: ${fullPath}`);
-        
-        // Essayer avec l'URL complète si c'est déjà une URL
-        if (imagePath.startsWith('http')) {
-          console.log('Tentative d\'upload depuis URL existante...');
-          const uploadResult = await cloudinary.uploader.upload(imagePath, {
-            folder: 'articles/migrated',
-            resource_type: 'auto',
-            public_id: `article_${article.article_id}_${Date.now()}`
-          });
-          
-          // Sauvegarder l'URL Cloudinary
-          await this.dataSource
-            .createQueryBuilder()
-            .insert()
-            .into('wp_postmeta')
-            .values({
-              post_id: parseInt(article.thumbnail_id),
-              meta_key: 'cloud_url',
-              meta_value: uploadResult.secure_url
-            })
-            .execute();
-            
-          console.log(`✅ Migration réussie depuis URL: ${uploadResult.secure_url}`);
-          successCount++;
-        } else {
-          console.log('❌ Fichier introuvable et pas d\'URL valide');
-          errorCount++;
+    for (const article of articlesWithImages) {
+      try {
+        const imagePath = article.image_path;
+        const localImagePath = `uploads/${imagePath}`;
+        const fs = require('fs');
+        const path = require('path');
+        const fullPath = path.join(process.cwd(), localImagePath);
+
+        if (!fs.existsSync(fullPath)) {
+
+          if (imagePath.startsWith('http')) {
+            console.log('Tentative d\'upload depuis URL existante...');
+            const uploadResult = await cloudinary.uploader.upload(imagePath, {
+              folder: 'articles/migrated',
+              resource_type: 'auto',
+              public_id: `article_${article.article_id}_${Date.now()}`
+            });
+
+            await this.dataSource
+              .createQueryBuilder()
+              .insert()
+              .into('wp_postmeta')
+              .values({
+                post_id: parseInt(article.thumbnail_id),
+                meta_key: 'cloud_url',
+                meta_value: uploadResult.secure_url
+              })
+              .execute();
+
+            successCount++;
+          } else {
+            errorCount++;
+          }
+          continue;
         }
-        continue;
+
+        const uploadResult = await cloudinary.uploader.upload(fullPath, {
+          folder: 'articles/migrated',
+          resource_type: 'auto',
+          public_id: `article_${article.article_id}_${Date.now()}`
+        });
+
+        await this.dataSource
+          .createQueryBuilder()
+          .insert()
+          .into('wp_postmeta')
+          .values({
+            post_id: parseInt(article.thumbnail_id),
+            meta_key: 'cloud_url',
+            meta_value: uploadResult.secure_url
+          })
+          .execute();
+        successCount++;
+
+      } catch (error) {
+        errorCount++;
       }
-
-      // Upload vers Cloudinary
-      const uploadResult = await cloudinary.uploader.upload(fullPath, {
-        folder: 'articles/migrated',
-        resource_type: 'auto',
-        public_id: `article_${article.article_id}_${Date.now()}`
-      });
-
-      console.log(`✅ Upload réussi: ${uploadResult.secure_url}`);
-
-      // Sauvegarder l'URL Cloudinary dans wp_postmeta
-      await this.dataSource
-        .createQueryBuilder()
-        .insert()
-        .into('wp_postmeta')
-        .values({
-          post_id: parseInt(article.thumbnail_id),
-          meta_key: 'cloud_url',
-          meta_value: uploadResult.secure_url
-        })
-        .execute();
-
-      console.log(`💾 cloud_url sauvegardée pour thumbnail_id: ${article.thumbnail_id}`);
-      successCount++;
-
-    } catch (error) {
-      console.error(`❌ Erreur pour l'article ${article.article_id}:`, error.message);
-      errorCount++;
     }
+
+    return {
+      success: successCount,
+      errors: errorCount,
+      total: successCount + errorCount
+    };
   }
 
-  console.log('\n=== RÉSUMÉ DE LA MIGRATION ===');
-  console.log(`✅ Succès: ${successCount}`);
-  console.log(`❌ Erreurs: ${errorCount}`);
-  console.log(`📊 Total traité: ${successCount + errorCount}`);
+  async convertExistingUrlsToCloudinary() {
+    const articlesWithFullUrls = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        'p.ID as article_id',
+        'p.post_title as title',
+        'thumb.meta_value as thumbnail_id',
+        'file.meta_value as image_path'
+      ])
+      .from('wp_posts', 'p')
+      .innerJoin('wp_postmeta', 'thumb', 'thumb.post_id = p.ID AND thumb.meta_key = "_thumbnail_id"')
+      .innerJoin('wp_postmeta', 'file', 'file.post_id = thumb.meta_value AND file.meta_key = "_wp_attached_file"')
+      .leftJoin('wp_postmeta', 'cloud', 'cloud.post_id = thumb.meta_value AND cloud.meta_key = "cloud_url"')
+      .where('p.post_type = :type', { type: 'post' })
+      .andWhere('p.post_status = :status', { status: 'publish' })
+      .andWhere('file.meta_value LIKE :urlPattern', { urlPattern: 'https://res.cloudinary.com%' })
+      .andWhere('cloud.meta_value IS NULL')
+      .getRawMany();
 
-  return {
-    success: successCount,
-    errors: errorCount,
-    total: successCount + errorCount
-  };
-}
+    let converted = 0;
 
-// 3. Fonction pour convertir les anciennes URLs en URLs Cloudinary
-async convertExistingUrlsToCloudinary() {
-  // Pour les articles qui ont déjà des URLs complètes dans image_path
-  const articlesWithFullUrls = await this.dataSource
-    .createQueryBuilder()
-    .select([
-      'p.ID as article_id',
-      'p.post_title as title', 
-      'thumb.meta_value as thumbnail_id',
-      'file.meta_value as image_path'
-    ])
-    .from('wp_posts', 'p')
-    .innerJoin('wp_postmeta', 'thumb', 'thumb.post_id = p.ID AND thumb.meta_key = "_thumbnail_id"')
-    .innerJoin('wp_postmeta', 'file', 'file.post_id = thumb.meta_value AND file.meta_key = "_wp_attached_file"')
-    .leftJoin('wp_postmeta', 'cloud', 'cloud.post_id = thumb.meta_value AND cloud.meta_key = "cloud_url"')
-    .where('p.post_type = :type', { type: 'post' })
-    .andWhere('p.post_status = :status', { status: 'publish' })
-    .andWhere('file.meta_value LIKE :urlPattern', { urlPattern: 'https://res.cloudinary.com%' })
-    .andWhere('cloud.meta_value IS NULL')
-    .getRawMany();
-
-  console.log(`${articlesWithFullUrls.length} articles avec URLs Cloudinary dans image_path mais sans cloud_url`);
-
-  let converted = 0;
-  
-  for (const article of articlesWithFullUrls) {
-    try {
-      // L'image_path contient déjà l'URL Cloudinary, il faut juste la copier dans cloud_url
-      await this.dataSource
-        .createQueryBuilder()
-        .insert()
-        .into('wp_postmeta')
-        .values({
-          post_id: parseInt(article.thumbnail_id),
-          meta_key: 'cloud_url',
-          meta_value: article.image_path
-        })
-        .execute();
-
-      console.log(`✅ Converti article ${article.article_id}: ${article.image_path}`);
-      converted++;
-    } catch (error) {
-      console.error(`❌ Erreur conversion article ${article.article_id}:`, error.message);
+    for (const article of articlesWithFullUrls) {
+      try {
+        await this.dataSource
+          .createQueryBuilder()
+          .insert()
+          .into('wp_postmeta')
+          .values({
+            post_id: parseInt(article.thumbnail_id),
+            meta_key: 'cloud_url',
+            meta_value: article.image_path
+          })
+          .execute();
+        converted++;
+      } catch (error) {
+      }
     }
+    return { converted };
   }
+  async findBySlugWithFallback(slug: string) {
+    const article = await this.articleRepo.findOneBy({
+      postName: slug,
+      postStatus: 'publish'
+    });
 
-  console.log(`🎉 ${converted} URLs Cloudinary converties avec succès`);
-  return { converted };
-}
+    if (!article) {
+      throw new NotFoundException('Article non trouvé');
+    }
+    const imageMeta = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        'file_meta.meta_value AS image_path',
+        'cloud_meta.meta_value AS cloud_url'
+      ])
+      .from('wp_postmeta', 'thumb_meta')
+      .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
+      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
+      .where('thumb_meta.post_id = :postId', { postId: article.ID })
+      .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+      .getRawOne();
 
-// 4. Méthode de correction temporaire pour votre ArticleService
-async findBySlugWithFallback(slug: string) {
-  const article = await this.articleRepo.findOneBy({
-    postName: slug,
-    postStatus: 'publish'
-  });
+    let imageUrl = null;
+    if (imageMeta?.cloud_url) {
+      imageUrl = imageMeta.cloud_url;
+    } else if (imageMeta?.image_path?.startsWith('https://res.cloudinary.com')) {
+      imageUrl = imageMeta.image_path;
+    } else if (imageMeta?.image_path?.startsWith('http')) {
+      imageUrl = imageMeta.image_path;
+    } else if (imageMeta?.image_path) {
+    }
 
-  if (!article) {
-    throw new NotFoundException('Article non trouvé');
+    const categories = await this.getCategoriesByArticle(article.ID);
+
+    return {
+      ...article,
+      image: imageUrl,
+      categories,
+    };
   }
-
-  // Récupération des métadonnées avec tous les cas possibles
-  const imageMeta = await this.dataSource
-    .createQueryBuilder()
-    .select([
-      'file_meta.meta_value AS image_path',
-      'cloud_meta.meta_value AS cloud_url'
-    ])
-    .from('wp_postmeta', 'thumb_meta')
-    .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
-    .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
-    .where('thumb_meta.post_id = :postId', { postId: article.ID })
-    .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-    .getRawOne();
-
-  console.log(`Article ${article.ID} - Métadonnées:`, imageMeta);
-
-  // Logique de fallback améliorée
-  let imageUrl = null;
-  
-  if (imageMeta?.cloud_url) {
-    // Cas 1: URL Cloudinary dans cloud_url (idéal)
-    imageUrl = imageMeta.cloud_url;
-    console.log('Utilisation cloud_url:', imageUrl);
-  } else if (imageMeta?.image_path?.startsWith('https://res.cloudinary.com')) {
-    // Cas 2: URL Cloudinary dans image_path (à migrer)
-    imageUrl = imageMeta.image_path;
-    console.log('URL Cloudinary trouvée dans image_path:', imageUrl);
-  } else if (imageMeta?.image_path?.startsWith('http')) {
-    // Cas 3: Autre URL complète
-    imageUrl = imageMeta.image_path;
-    console.log('URL complète dans image_path:', imageUrl);
-  } else if (imageMeta?.image_path) {
-    // Cas 4: Chemin relatif (ancien système)
-    
-  }
-
-  const categories = await this.getCategoriesByArticle(article.ID);
-
-  return {
-    ...article,
-    image: imageUrl,
-    categories,
-  };
-}
   async updateStatus(id: number, status: string) {
     const article = await this.articleRepo.findOneBy({ ID: id });
     if (!article) throw new NotFoundException('Article non trouvé');
@@ -816,250 +687,418 @@ async findBySlugWithFallback(slug: string) {
     return this.articleRepo.save(article);
   }
 
- 
-async findBySlug(slug: string) {
-  const article = await this.articleRepo.findOneBy({
-    postName: slug,
-    postStatus: 'publish'
-  });
+  async findBySlug(slug: string) {
+    const article = await this.articleRepo.findOneBy({
+      postName: slug,
+      postStatus: 'publish'
+    });
 
-  if (!article) {
-    console.log('Article non trouvé pour ce slug:', slug);
-    throw new NotFoundException('Article non trouvé');
+    if (!article) {
+      console.log('Article non trouvé pour ce slug:', slug);
+      throw new NotFoundException('Article non trouvé');
+    }
+
+    const imageMeta = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        'file_meta.meta_value AS image_path',
+        'cloud_meta.meta_value AS cloud_url'
+      ])
+      .from('wp_postmeta', 'thumb_meta')
+      .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
+      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
+      .where('thumb_meta.post_id = :postId', { postId: article.ID })
+      .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+      .getRawOne();
+
+    const imageUrl = imageMeta?.cloud_url || imageMeta?.image_path || null;
+    const categories = await this.getCategoriesByArticle(article.ID);
+
+    return {
+      ...article,
+      image: imageUrl,
+      categories,
+    };
   }
 
-  const imageMeta = await this.dataSource
-    .createQueryBuilder()
-    .select([
-      'file_meta.meta_value AS image_path',
-      'cloud_meta.meta_value AS cloud_url'
-    ])
-    .from('wp_postmeta', 'thumb_meta')
-    .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', { fileKey: '_wp_attached_file' })
-    .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', { cloudKey: 'cloud_url' })
-    .where('thumb_meta.post_id = :postId', { postId: article.ID })
-    .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-    .getRawOne();
+  async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
+    const offset = (page - 1) * limit;
 
-  // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
-  const imageUrl = imageMeta?.cloud_url || imageMeta?.image_path || null;
+    const qb = this.dataSource
+      .createQueryBuilder()
+      .select([
+        'article.ID AS id',
+        'article.post_title AS title',
+        'article.post_excerpt AS excerpt',
+        'article.post_content AS content',
+        'article.post_date AS date',
+        'article.post_name AS slug',
+        'file_meta.meta_value AS image_path',
+        'cloud_meta.meta_value AS cloud_url',
+      ])
+      .from(Article, 'article')
+      .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
+        thumbnailKey: '_thumbnail_id',
+      })
+      .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
+        fileKey: '_wp_attached_file',
+      })
+      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', {
+        cloudKey: 'cloud_url',
+      })
+      .where('article.post_status = :status', { status: 'publish' });
 
-  const categories = await this.getCategoriesByArticle(article.ID);
+    if (categoryId) {
+      qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+        .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+        .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+        .andWhere('tt.term_id = :categoryId', { categoryId });
+    }
 
-  return {
-    ...article,
-    image: imageUrl,
-    categories,
-  };
-}
+    qb.orderBy('article.post_date', 'DESC')
+      .offset(offset)
+      .limit(limit);
 
-async findArticlesWithImagesMerged(page: number, limit: number, categoryId?: number) {
-  const offset = (page - 1) * limit;
+    const articles = await qb.getRawMany();
+    const countQb = this.dataSource
+      .createQueryBuilder()
+      .select('COUNT(*)', 'count')
+      .from(Article, 'article')
+      .where('article.post_status = :status', { status: 'publish' });
 
-  const qb = this.dataSource
-    .createQueryBuilder()
-    .select([
-      'article.ID AS id',
-      'article.post_title AS title',
-      'article.post_excerpt AS excerpt',
-      'article.post_content AS content',
-      'article.post_date AS date',
-      'article.post_name AS slug',
-      'file_meta.meta_value AS image_path',
-      'cloud_meta.meta_value AS cloud_url',
-    ])
-    .from(Article, 'article')
-    .leftJoin('wp_postmeta', 'thumb_meta', 'thumb_meta.post_id = article.ID AND thumb_meta.meta_key = :thumbnailKey', {
-      thumbnailKey: '_thumbnail_id',
-    })
-    .leftJoin('wp_postmeta', 'file_meta', 'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey', {
-      fileKey: '_wp_attached_file',
-    })
-    .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey', {
-      cloudKey: 'cloud_url',
-    })
-    .where('article.post_status = :status', { status: 'publish' });
+    if (categoryId) {
+      countQb
+        .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
+        .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
+        .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
+        .andWhere('tt.term_id = :categoryId', { categoryId });
+    }
 
-  if (categoryId) {
-    qb.innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
-      .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-      .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-      .andWhere('tt.term_id = :categoryId', { categoryId });
+    const totalResult = await countQb.getRawOne();
+    const total = parseInt(totalResult.count, 10);
+
+    const formattedArticles = await Promise.all(
+      articles.map(async (item: any) => {
+        const categories = await this.getCategoriesByArticle(item.id);
+        const imageUrl = item.cloud_url || item.image_path || null;
+
+        return {
+          id: item.id,
+          title: item.title,
+          excerpt: item.excerpt,
+          content: item.content,
+          slug: item.slug,
+          date: item.date,
+          image: imageUrl,
+          categories: categories,
+        };
+      })
+    );
+
+    return {
+      articles: formattedArticles,
+      total,
+      totalPages: Math.ceil(total / limit),
+      articlesCount: formattedArticles.length,
+      firstArticle: formattedArticles[0] || null,
+      firstArticleImage: formattedArticles[0]?.image || null,
+    };
   }
 
-  qb.orderBy('article.post_date', 'DESC')
-    .offset(offset)
-    .limit(limit);
+  async findWithPagination(page: number, limit: number) {
+    const offset = (page - 1) * limit;
 
-  const articles = await qb.getRawMany();
+    const articles = await this.dataSource
+      .createQueryBuilder()
+      .select([
+        'article.ID AS id',
+        'article.post_title AS title',
+        'article.post_excerpt AS excerpt',
+        'article.post_content AS content',
+        'article.post_date AS postDate',
+        'article.post_name AS slug',
+        'article.post_status AS postStatus',
+        'article.post_type AS postType',
+        'article.guid AS guid',
+        'article.post_author AS postAuthor',
+        'media.meta_value AS image_path',
+        'cloud_meta.meta_value AS cloud_url'
+      ])
+      .from(Article, 'article')
+      .leftJoin(MediaMeta, 'media', 'media.post_id = article.ID AND media.meta_key = "_wp_attached_file"')
+      .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = article.ID AND cloud_meta.meta_key = "cloud_url"')
+      .where('article.post_status = :status', { status: 'publish' })
+      .orderBy('article.post_date', 'DESC')
+      .offset(offset)
+      .limit(limit)
+      .getRawMany();
 
-  const countQb = this.dataSource
-    .createQueryBuilder()
-    .select('COUNT(*)', 'count')
-    .from(Article, 'article')
-    .where('article.post_status = :status', { status: 'publish' });
+    articles.forEach((article: any) => {
+      article.image = article.cloud_url || article.image_path || null;
+    });
 
-  if (categoryId) {
-    countQb
-      .innerJoin('wp_term_relationships', 'tr', 'tr.object_id = article.ID')
-      .innerJoin('wp_term_taxonomy', 'tt', 'tt.term_taxonomy_id = tr.term_taxonomy_id')
-      .andWhere('tt.taxonomy = :taxonomy', { taxonomy: 'category' })
-      .andWhere('tt.term_id = :categoryId', { categoryId });
+    const total = await this.dataSource
+      .createQueryBuilder()
+      .select('COUNT(*)', 'count')
+      .from(Article, 'article')
+      .where('article.post_status = :status', { status: 'publish' })
+      .getRawOne();
+
+    const totalPages = Math.ceil(total.count / limit);
+
+    return {
+      articles,
+      total: parseInt(total.count, 10),
+      totalPages: totalPages || 1
+    };
   }
 
-  const totalResult = await countQb.getRawOne();
-  const total = parseInt(totalResult.count, 10);
+  async searchArticles(query: string, page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
 
-  const formattedArticles = await Promise.all(
-    articles.map(async (item: any) => {
-      const categories = await this.getCategoriesByArticle(item.id);
-      
-      // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
-      const imageUrl = item.cloud_url || item.image_path || null;
-      
-      return {
-        id: item.id,
-        title: item.title,
-        excerpt: item.excerpt,
-        content: item.content,
-        slug: item.slug,
-        date: item.date,
-        image: imageUrl,
-        categories: categories,
-      };
-    })
-  );
+    const articles = await this.articleRepo
+      .createQueryBuilder('article')
+      .where('article.post_title LIKE :searchTerm', {
+        searchTerm: `%${query}%`,
+      })
+      .andWhere('article.post_status = :status', { status: 'publish' })
+      .andWhere('article.post_type = :type', { type: 'post' })
+      .orderBy('article.post_date', 'DESC')
+      .offset(offset)
+      .limit(limit)
+      .getMany();
 
-  return {
-    articles: formattedArticles,
-    total,
-    totalPages: Math.ceil(total / limit),
-    articlesCount: formattedArticles.length,
-    firstArticle: formattedArticles[0] || null,
-    firstArticleImage: formattedArticles[0]?.image || null,
-  };
+    const total = await this.articleRepo
+      .createQueryBuilder('article')
+      .where('article.post_title LIKE :searchTerm', {
+        searchTerm: `%${query}%`,
+      })
+      .andWhere('article.post_status = :status', { status: 'publish' })
+      .andWhere('article.post_type = :type', { type: 'post' })
+      .getCount();
+
+    const enrichedArticles = await Promise.all(
+      articles.map(async (article) => {
+        const imageMeta = await this.dataSource
+          .createQueryBuilder()
+          .select([
+            'file_meta.meta_value AS image_path',
+            'cloud_meta.meta_value AS cloud_url'
+          ])
+          .from('wp_postmeta', 'thumb_meta')
+          .leftJoin(
+            'wp_postmeta',
+            'file_meta',
+            'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey',
+            { fileKey: '_wp_attached_file' }
+          )
+          .leftJoin(
+            'wp_postmeta',
+            'cloud_meta',
+            'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey',
+            { cloudKey: 'cloud_url' }
+          )
+          .where('thumb_meta.post_id = :postId', { postId: article.ID })
+          .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
+          .getRawOne();
+
+        const imageUrl = imageMeta?.cloud_url || imageMeta?.image_path || null;
+        const categories = await this.getCategoriesByArticle(article.ID);
+
+        return {
+          id: article.ID,
+          title: article.postTitle,
+          excerpt: article.postExcerpt,
+          content: article.postContent,
+          slug: article.postName,
+          date: article.postDate,
+          image: imageUrl,
+          categories,
+        };
+      })
+    );
+
+    return {
+      articles: enrichedArticles,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+
+// Fonction principale pour mise à jour par slug
+  async updateArticleBySlug(slug: string, articleData: any, file?: File) {
+    try {
+      console.log('🔄 Mise à jour par slug...', { slug, data: articleData, hasFile: !!file });
+
+      if (!slug) throw new Error("Slug de l'article manquant pour la mise à jour");
+      if (!articleData.postTitle?.trim()) throw new Error("Le titre est obligatoire");
+      if (!articleData.postContent?.trim()) throw new Error("Le contenu est obligatoire");
+
+      let response;
+
+      if (file) {
+        const formData = new FormData();
+        formData.append('postTitle', articleData.postTitle.trim());
+        formData.append('postContent', articleData.postContent.trim());
+        formData.append('postExcerpt', articleData.postExcerpt || '');
+        formData.append('postStatus', articleData.postStatus || 'draft');
+        formData.append('postName', articleData.postName || '');
+        formData.append('seoTitle', articleData.seoTitle || '');
+        formData.append('seoDescription', articleData.seoDescription || '');
+        formData.append('image', file);
+
+        response = await fetch(`https://xibarubamback.onrender.com/articles/by-slug/${encodeURIComponent(slug)}`, {
+          
+          method: 'PUT',
+                  headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json'
+        },
+          body: formData
+        });
+      } else if (articleData.cloudinaryUrl) {
+        const cleanData = {
+          postTitle: articleData.postTitle.trim(),
+          postContent: articleData.postContent.trim(),
+          postExcerpt: articleData.postExcerpt || '',
+          postStatus: articleData.postStatus || 'draft',
+          postName: articleData.postName || '',
+          seoTitle: articleData.seoTitle || '',
+          seoDescription: articleData.seoDescription || '',
+          cloudinaryUrl: articleData.cloudinaryUrl
+        };
+
+        response = await fetch(`https://xibarubamback.onrender.com/articles/by-slug/${encodeURIComponent(slug)}/cloudinary-url`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(cleanData)
+        });
+      } else {
+        const cleanData = {
+          postTitle: articleData.postTitle.trim(),
+          postContent: articleData.postContent.trim(),
+          postExcerpt: articleData.postExcerpt || '',
+          postStatus: articleData.postStatus || 'draft',
+          postName: articleData.postName || '',
+          seoTitle: articleData.seoTitle || '',
+          seoDescription: articleData.seoDescription || ''
+        };
+
+        response = await fetch(`https://xibarubamback.onrender.com/articles/by-slug/${encodeURIComponent(slug)}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(cleanData)
+        });
+      }
+
+      const data: any = await handleResponse(response);
+
+      if (data?.data?.imagePath) {
+        data.data.fullImageUrl = buildImageUrl(data.data.imagePath);
+      } else if (data?.imagePath) {
+        data.fullImageUrl = buildImageUrl(data.imagePath);
+      }
+
+      console.log('✅ Article mis à jour par slug avec succès:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour par slug:', error);
+      throw error;
+    }
+  }
+
+  
+async getArticleBySlug(slug: string) {
+  try {
+    console.log('🔄 Récupération de l\'article par slug:', slug);
+    const response = await fetch(`https://xibarubamback.onrender.com/articles/${encodeURIComponent(slug)}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    if (response.ok) {
+      const data: any = await response.json();
+
+      // Ajouter l'URL complète de l'image si elle existe
+      if (data && (data.image || data.imagePath || data.image_path)) {
+        data.fullImageUrl = buildImageUrl(data.image || data.imagePath || data.image_path);
+      }
+
+      return { data };
+    } else {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'article par slug:', error);
+    throw error;
+  }
 }
 
-async findWithPagination(page: number, limit: number) {
-  const offset = (page - 1) * limit;
+// Fonction pour mettre à jour seulement l'image par slug
+  async updateArticleImageBySlug(slug: string, cloudinaryUrl: string) {
+    try {
+      const response = await fetch(`https://xibarubamback.onrender.com/articles/by-slug/${encodeURIComponent(slug)}/image`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cloudinaryUrl })
+      });
 
-  const articles = await this.dataSource
-    .createQueryBuilder()
-    .select([
-      'article.ID AS id',
-      'article.post_title AS title',
-      'article.post_excerpt AS excerpt',
-      'article.post_content AS content',
-      'article.post_date AS postDate',
-      'article.post_name AS slug',
-      'article.post_status AS postStatus',
-      'article.post_type AS postType',
-      'article.guid AS guid',
-      'article.post_author AS postAuthor',
-      'media.meta_value AS image_path',
-      'cloud_meta.meta_value AS cloud_url'
-    ])
-    .from(Article, 'article')
-    .leftJoin(MediaMeta, 'media', 'media.post_id = article.ID AND media.meta_key = "_wp_attached_file"')
-    .leftJoin('wp_postmeta', 'cloud_meta', 'cloud_meta.post_id = article.ID AND cloud_meta.meta_key = "cloud_url"')
-    .where('article.post_status = :status', { status: 'publish' })
-    .orderBy('article.post_date', 'DESC')
-    .offset(offset)
-    .limit(limit)
-    .getRawMany();
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
 
-  articles.forEach((article: any) => {
-    // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
-    article.image = article.cloud_url || article.image_path || null;
-  });
+      return await response.json();
+    } catch (error) {
+      console.error("❌ Erreur lors de la mise à jour de l'image par slug:", error);
+      throw error;
+    }
+  }
 
-  const total = await this.dataSource
-    .createQueryBuilder()
-    .select('COUNT(*)', 'count')
-    .from(Article, 'article')
-    .where('article.post_status = :status', { status: 'publish' })
-    .getRawOne();
+  async getArticleForEdit(slugOrId) {
+    try {
+      console.log('🔄 Récupération de l\'article pour édition:', slugOrId);
+      const response = await fetch(`https://xibarubamback.onrender.com/articles/${encodeURIComponent(slugOrId)}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
 
-  const totalPages = Math.ceil(total.count / limit);
-
-  return {
-    articles,
-    total: parseInt(total.count, 10),
-    totalPages: totalPages || 1
-  };
+      if (response.ok) {
+        const data = await response.json();
+        if (data && (data.image || data.imagePath || data.image_path)) {
+          data.fullImageUrl = buildImageUrl(data.image || data.imagePath || data.image_path);
+        }
+        return { data };
+      } else {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'article:', error);
+      throw error;
+    }
+  }
 }
 
-async searchArticles(query: string, page = 1, limit = 10) {
-  const offset = (page - 1) * limit;
+  
 
-  const articles = await this.articleRepo
-    .createQueryBuilder('article')
-    .where('article.post_title LIKE :searchTerm', {
-      searchTerm: `%${query}%`,
-    })
-    .andWhere('article.post_status = :status', { status: 'publish' })
-    .andWhere('article.post_type = :type', { type: 'post' })
-    .orderBy('article.post_date', 'DESC')
-    .offset(offset)
-    .limit(limit)
-    .getMany();
-
-  const total = await this.articleRepo
-    .createQueryBuilder('article')
-    .where('article.post_title LIKE :searchTerm', {
-      searchTerm: `%${query}%`,
-    })
-    .andWhere('article.post_status = :status', { status: 'publish' })
-    .andWhere('article.post_type = :type', { type: 'post' })
-    .getCount();
-
-  const enrichedArticles = await Promise.all(
-    articles.map(async (article) => {
-      const imageMeta = await this.dataSource
-        .createQueryBuilder()
-        .select([
-          'file_meta.meta_value AS image_path',
-          'cloud_meta.meta_value AS cloud_url'
-        ])
-        .from('wp_postmeta', 'thumb_meta')
-        .leftJoin(
-          'wp_postmeta',
-          'file_meta',
-          'file_meta.post_id = thumb_meta.meta_value AND file_meta.meta_key = :fileKey',
-          { fileKey: '_wp_attached_file' }
-        )
-        .leftJoin(
-          'wp_postmeta',
-          'cloud_meta',
-          'cloud_meta.post_id = thumb_meta.meta_value AND cloud_meta.meta_key = :cloudKey',
-          { cloudKey: 'cloud_url' }
-        )
-        .where('thumb_meta.post_id = :postId', { postId: article.ID })
-        .andWhere('thumb_meta.meta_key = :thumbnailKey', { thumbnailKey: '_thumbnail_id' })
-        .getRawOne();
-
-      // Utiliser l'URL Cloudinary en priorité, sinon l'image_path tel quel
-      const imageUrl = imageMeta?.cloud_url || imageMeta?.image_path || null;
-
-      const categories = await this.getCategoriesByArticle(article.ID);
-
-      return {
-        id: article.ID,
-        title: article.postTitle,
-        excerpt: article.postExcerpt,
-        content: article.postContent,
-        slug: article.postName,
-        date: article.postDate,
-        image: imageUrl,
-        categories,
-      };
-    })
-  );
-
-  return {
-    articles: enrichedArticles,
-    total,
-    totalPages: Math.ceil(total / limit),
-  };
+function getAuthToken() {
+  throw new Error('Function not implemented.');
 }
+
+
+function getAuthHeaders(): HeadersInit | undefined {
+  throw new Error('Function not implemented.');
+}
+
+
+function handleResponse(response: any) {
+  throw new Error('Function not implemented.');
+}
+
+
+function buildImageUrl(imagePath: any): any {
+  throw new Error('Function not implemented.');
 }

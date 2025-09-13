@@ -28,12 +28,11 @@ export class ArticleController {
       if (file) {
         console.log('📤 Upload de l\'image vers Cloudinary...');
         
-        // Upload sur Cloudinary
         const result: any = await new Promise((resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
             {
               folder: `articles/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}`,
-              resource_type: 'auto', // Permet d'uploader tous types de fichiers
+              resource_type: 'auto', 
             },
             (error, result) => {
               if (error) {
@@ -50,7 +49,6 @@ export class ArticleController {
         console.log('✅ Image uploadée sur Cloudinary:', cloudinaryUrl);
       }
 
-      // Créer l'article avec l'URL Cloudinary
       const article = await this.articleService.createWithImage(createArticleDto, cloudinaryUrl);
 
       return {
@@ -135,7 +133,6 @@ export class ArticleController {
     }
   }
 
-  // Endpoint pour migrer un article existant vers Cloudinary
   @Patch(':id/migrate-to-cloudinary')
   async migrateToCloudinary(@Param('id') id: string, @Body() body: { cloudinaryUrl: string }) {
     try {
@@ -148,19 +145,14 @@ export class ArticleController {
         };
       }
 
-      // Récupérer l'article
       const article = await this.articleService.findBySlug(id);
       if (!article) {
         throw new NotFoundException('Article non trouvé');
       }
 
-      // Extraire le nom du fichier de l'URL Cloudinary
       const fileName = cloudinaryUrl.split('/').pop() || 'cloudinary-image';
+            const imageId = await this.articleService.createCloudinaryImagePost(cloudinaryUrl, fileName);
       
-      // Créer une nouvelle entrée d'image avec l'URL Cloudinary
-      const imageId = await this.articleService.createCloudinaryImagePost(cloudinaryUrl, fileName);
-      
-      // Associer la nouvelle image à l'article
       await this.articleService.attachImageToArticle(parseInt(id), imageId);
 
       return {
@@ -229,24 +221,12 @@ export class ArticleController {
     );
   }
 
-  // @Get('admin')
-  // getAllArticlesAdmin() {
-  //   return this.articleService.findAll();
-  // }
-
   @Get('admin')
 async getAllArticlesAdmin() {
   try {
-    // Récupérer tous les articles
     const articles = await this.articleService.findAll();
-
-    // Extraire les IDs
     const postIds = articles.map(article => article.ID);
-
-    // Récupérer les vues par article
     const viewsMap = await this.mediaService.getViewsForMultiplePosts(postIds);
-
-    // Ajouter les vues aux articles
     const articlesWithViews = articles.map(article => ({
       ...article,
       views: viewsMap[article.ID] || 0
@@ -281,11 +261,7 @@ async getAllArticlesAdmin() {
     return this.articleService.create(createArticleDto);
   }
 
-  // @UseGuards(JwtAuthGuard)
-  // @Put(':id')
-  // updateArticle(@Param('id') id: string, @Body() data: any) {
-  //   return this.articleService.update(+id, data);
-  // }
+
 
   // @UseGuards(JwtAuthGuard)
   @Delete(':id')
@@ -299,7 +275,6 @@ async getAllArticlesAdmin() {
     return this.articleService.publish(+id);
   }
 
-  // Endpoint pour tester la connexion Cloudinary
   @Get('test/cloudinary')
   async testCloudinary() {
     try {
@@ -330,7 +305,6 @@ async updateArticle(
     const articleId = parseInt(id);
     let cloudinaryUrl: string | undefined = undefined;
 
-    // Si un nouveau fichier est uploadé
     if (file) {
       console.log('📤 Upload de la nouvelle image vers Cloudinary...');
       
@@ -355,7 +329,6 @@ async updateArticle(
       console.log('✅ Nouvelle image uploadée:', cloudinaryUrl);
     }
 
-    // Mettre à jour l'article avec la nouvelle image si fournie
     const updatedArticle = await this.articleService.updateWithImage(
       articleId, 
       updateData, 
@@ -445,7 +418,6 @@ async updateArticleImage(
   }
 }
 
-  // Endpoint pour lister les images Cloudinary d'un dossier
   @Get('cloudinary/list/:folder')
   async listCloudinaryImages(@Param('folder') folder: string) {
     try {
@@ -494,7 +466,6 @@ async updateArticleImage(
     }
   }
 
-  // Route pour récupérer les vues d'un article
   @Get(':id/views')
   async getViews(@Param('id') id: string) {
     try {
@@ -514,8 +485,6 @@ async updateArticleImage(
     }
   }
 
-
-  // Route pour les articles les plus vus (pour analytics)
   @Get('most-viewed')
   async getMostViewedArticles(@Query('limit') limit = 10) {
     try {
@@ -525,4 +494,160 @@ async updateArticleImage(
       throw new InternalServerErrorException(error.message);
     }
   }
+  // Ajoutez ces endpoints à votre ArticleController
+
+// Mise à jour par slug avec fichier
+@Put('by-slug/:slug')
+@UseInterceptors(FileInterceptor('image'))
+async updateArticleBySlug(
+    @Param('id') id: string,
+
+  @Param('slug') slug: string,
+  @Body() updateData: any,
+  @UploadedFile() file?: Express.Multer.File
+) {
+  try {
+    console.log('=== MISE À JOUR PAR SLUG ===');
+    console.log('Slug:', slug);
+    console.log('Données:', updateData);
+    console.log('Fichier:', !!file);
+
+    // D'abord récupérer l'article pour avoir son ID
+    const article = await this.articleService.findBySlug(slug);
+    if (!article) {
+      throw new NotFoundException('Article non trouvé');
+    }
+
+    const articleId = parseInt(id);
+    let cloudinaryUrl: string | undefined = undefined;
+
+    if (file) {
+      console.log('📤 Upload de la nouvelle image vers Cloudinary...');
+      
+      const result: any = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: `articles/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+            resource_type: 'auto',
+          },
+          (error, result) => {
+            if (error) {
+              console.error('❌ Erreur upload Cloudinary:', error);
+              return reject(error);
+            }
+            resolve(result);
+          }
+        );
+        streamifier.createReadStream(file.buffer).pipe(uploadStream);
+      });
+
+      cloudinaryUrl = result.secure_url;
+      console.log('✅ Nouvelle image uploadée:', cloudinaryUrl);
+    }
+
+    const updatedArticle = await this.articleService.updateWithImage(
+      articleId, 
+      updateData, 
+      cloudinaryUrl
+    );
+
+    return {
+      success: true,
+      message: 'Article mis à jour avec succès',
+      data: updatedArticle
+    };
+  } catch (error) {
+    console.error('❌ Erreur lors de la mise à jour:', error);
+    return {
+      success: false,
+      message: 'Erreur lors de la mise à jour de l\'article',
+      error: error.message
+    };
+  }
 }
+
+// Mise à jour par slug avec URL Cloudinary
+@Put('by-slug/:slug/cloudinary-url')
+async updateArticleBySlugWithCloudinaryUrl(
+  @Param('id') id: string,
+  @Param('slug') slug: string,
+  @Body() body: { cloudinaryUrl?: string; [key: string]: any }
+) {
+  try {
+    console.log('=== MISE À JOUR PAR SLUG AVEC URL CLOUDINARY ===');
+    console.log('Slug:', slug);
+
+    // Récupérer l'article pour avoir son ID
+    const article = await this.articleService.findBySlug(slug);
+    if (!article) {
+      throw new NotFoundException('Article non trouvé');
+    }
+
+    const articleId = parseInt(id);
+    const { cloudinaryUrl, ...updateData } = body;
+
+    console.log('Article ID trouvé:', articleId);
+    console.log('Nouvelle URL Cloudinary:', cloudinaryUrl);
+
+    const updatedArticle = await this.articleService.updateWithImage(
+      articleId, 
+      updateData, 
+      cloudinaryUrl
+    );
+
+    return {
+      success: true,
+      message: 'Article mis à jour avec URL Cloudinary',
+      data: updatedArticle
+    };
+  } catch (error) {
+    console.error('❌ Erreur mise à jour par slug:', error);
+    return {
+      success: false,
+      message: 'Erreur lors de la mise à jour',
+      error: error.message
+    };
+  }
+}
+
+// Mise à jour de l'image seulement par slug
+@Patch('by-slug/:slug/image')
+async updateArticleImageBySlug(
+  @Param('slug') slug: string,
+  @Param('id') id: string,
+  @Body() body: { cloudinaryUrl: string }
+) {
+  try {
+    const article = await this.articleService.findBySlug(slug);
+    if (!article) {
+      throw new NotFoundException('Article non trouvé');
+    }
+
+    const articleId = parseInt(id);
+    const { cloudinaryUrl } = body;
+
+    if (!cloudinaryUrl) {
+      return {
+        success: false,
+        message: 'URL Cloudinary requise'
+      };
+    }
+
+    await this.articleService.updateArticleImage(articleId, cloudinaryUrl);
+
+    return {
+      success: true,
+      message: 'Image de l\'article mise à jour avec succès',
+      cloudinaryUrl: cloudinaryUrl
+    };
+  } catch (error) {
+    console.error('❌ Erreur mise à jour image par slug:', error);
+    return {
+      success: false,
+      message: 'Erreur lors de la mise à jour de l\'image',
+      error: error.message
+    };
+  }
+}
+}
+
