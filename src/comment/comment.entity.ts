@@ -50,4 +50,6 @@ export class Comment {
 
   @Column({ name: 'user_id', type: 'bigint' })
   user_id: number;
+
+  
 }

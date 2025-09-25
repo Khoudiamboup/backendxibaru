@@ -291,7 +291,6 @@ export class ArticleService {
     return savedArticle;
   }
 
-  // Nouvelle méthode pour créer une entrée d'image Cloudinary dans wp_posts
   async createCloudinaryImagePost(cloudinaryUrl: string, fileName: string): Promise<number> {
     const imagePost = this.articleRepo.create({
       postTitle: fileName,
@@ -304,7 +303,7 @@ export class ArticleService {
       postDateGmt: new Date(),
       postModified: new Date(),
       postModifiedGmt: new Date(),
-      guid: cloudinaryUrl, // Utiliser l'URL Cloudinary comme GUID
+      guid: cloudinaryUrl, 
       commentStatus: 'open',
       pingStatus: 'closed',
       postPassword: '',
@@ -333,7 +332,7 @@ export class ArticleService {
         {
           post_id: savedImagePost.ID,
           meta_key: '_wp_attached_file',
-          meta_value: fileName // Garder le nom du fichier pour compatibilité
+          meta_value: fileName 
         }
       ])
       .execute();
@@ -372,7 +371,6 @@ export class ArticleService {
 
       console.log('Résultat de l\'insertion thumbnail:', result);
 
-      // Vérifier que l'insertion a bien eu lieu
       const verification = await this.dataSource
         .createQueryBuilder()
         .select('*')
@@ -499,7 +497,7 @@ export class ArticleService {
       total: articlesWithImages.length,
       withCloudinary: withCloudinary.length,
       withoutCloudinary: withoutCloudinary.length,
-      articlesWithoutCloudinary: withoutCloudinary.slice(0, 10) // Premiers 10 pour debug
+      articlesWithoutCloudinary: withoutCloudinary.slice(0, 10) 
     };
   }
 
@@ -518,7 +516,7 @@ export class ArticleService {
       .leftJoin('wp_postmeta', 'cloud', 'cloud.post_id = thumb.meta_value AND cloud.meta_key = "cloud_url"')
       .where('p.post_type = :type', { type: 'post' })
       .andWhere('p.post_status = :status', { status: 'publish' })
-      .andWhere('cloud.meta_value IS NULL') // Seulement ceux sans cloud_url
+      .andWhere('cloud.meta_value IS NULL') 
       .getRawMany();
 
     const cloudinary = require('cloudinary').v2;
@@ -596,6 +594,25 @@ export class ArticleService {
       total: successCount + errorCount
     };
   }
+
+async getCommentsByArticle(articleId: number) {
+  const comments = await this.dataSource
+    .createQueryBuilder()
+    .select([
+      'c.comment_ID AS id',
+      'c.comment_author AS author',
+      'c.comment_content AS content',
+      'c.comment_date AS date',
+      'c.comment_parent AS parentId'
+    ])
+    .from('wp_comments', 'c')
+    .where('c.comment_post_ID = :articleId', { articleId })
+    .andWhere('c.comment_approved = 1') 
+    .orderBy('c.comment_date', 'ASC')
+    .getRawMany();
+
+  return comments;
+}
 
   async convertExistingUrlsToCloudinary() {
     const articlesWithFullUrls = await this.dataSource
@@ -713,11 +730,15 @@ export class ArticleService {
 
     const imageUrl = imageMeta?.cloud_url || imageMeta?.image_path || null;
     const categories = await this.getCategoriesByArticle(article.ID);
+    const comments = await this.getCommentsByArticle(article.ID);
+
+
 
     return {
       ...article,
       image: imageUrl,
       categories,
+      comments,
     };
   }
 
@@ -926,7 +947,6 @@ export class ArticleService {
   }
 
 
-// Fonction principale pour mise à jour par slug
   async updateArticleBySlug(slug: string, articleData: any, file?: File) {
     try {
       console.log('🔄 Mise à jour par slug...', { slug, data: articleData, hasFile: !!file });
@@ -1000,10 +1020,10 @@ export class ArticleService {
         data.fullImageUrl = buildImageUrl(data.imagePath);
       }
 
-      console.log('✅ Article mis à jour par slug avec succès:', data);
+      console.log(' Article mis à jour par slug avec succès:', data);
       return data;
     } catch (error) {
-      console.error('❌ Erreur lors de la mise à jour par slug:', error);
+      console.error(' Erreur lors de la mise à jour par slug:', error);
       throw error;
     }
   }
@@ -1020,7 +1040,6 @@ async getArticleBySlug(slug: string) {
     if (response.ok) {
       const data: any = await response.json();
 
-      // Ajouter l'URL complète de l'image si elle existe
       if (data && (data.image || data.imagePath || data.image_path)) {
         data.fullImageUrl = buildImageUrl(data.image || data.imagePath || data.image_path);
       }
