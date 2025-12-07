@@ -29,7 +29,7 @@ async function bootstrap() {
 
   // CORS dynamique
   const allowedOrigins = [
-    'https://xibarubambouck.com',
+    'https://xibarubambouck.net',
     'https://bambouckadmin.vercel.app',
     'https://xibarubambouckadmin-c6sn.vercel.app',
     'https://xibarubambouck-com-1z5y.vercel.app',
