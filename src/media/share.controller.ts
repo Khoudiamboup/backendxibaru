@@ -40,11 +40,11 @@ export class ShareController {
         <meta property="og:title" content="${escapeHtml(article.postTitle)}" />
         <meta property="og:description" content="${escapeHtml(excerpt)}" />
         <meta property="og:image" content="${article.image || ''}" />
-        <meta property="og:url" content="https://xibarubambouck.com/articles/${article.postName}" />
+        <meta property="og:url" content="https://xibarubambouck.net/articles/${article.postName}" />
         <meta property="og:type" content="article" />
         <script>
           setTimeout(() => {
-            window.location.href = "https://xibarubambouck.com/${article.postName}";
+            window.location.href = "https://xibarubambouck.net/${article.postName}";
           }, 300);
         </script>
       </head>
